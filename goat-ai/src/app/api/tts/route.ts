@@ -9,9 +9,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // Limit text to 12 seconds (roughly 150 characters)
-    const limitedText = text.length > 150 ? text.substring(0, 150) + "..." : text;
-
     const elevenApiKey = process.env.ELEVEN_API_KEY;
     if (!elevenApiKey) {
       return NextResponse.json({ error: "ElevenLabs API key not configured" }, { status: 500 });
@@ -28,7 +25,7 @@ export async function POST(request: NextRequest) {
         "xi-api-key": elevenApiKey,
       },
       body: JSON.stringify({
-        text: limitedText,
+        text,
         model_id: "eleven_monolingual_v1",
         voice_settings: {
           stability: 0.5,
