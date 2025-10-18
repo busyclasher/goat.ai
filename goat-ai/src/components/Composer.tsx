@@ -94,9 +94,18 @@ export function Composer({
     }
   };
 
-  const handleTranscription = (text: string) => {
-    setMessage(text);
-    textareaRef.current?.focus();
+  const handleTranscription = async (text: string) => {
+    if (!text || isSending || disabled) return;
+
+    setIsSending(true);
+    try {
+      await onSend(text);
+      setMessage(""); // Clear the composer after sending
+    } catch (error) {
+      console.error("Error sending transcribed message:", error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleError = (error: string) => {
