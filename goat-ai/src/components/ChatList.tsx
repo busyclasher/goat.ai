@@ -31,73 +31,87 @@ export function ChatList({ messages, className }: ChatListProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    console.log('ChatList messages:', messages.map(m => ({
-      id: m.id,
-      role: m.role,
-      hasAudio: !!m.audio_url,
-      audioUrlLength: m.audio_url?.length || 0
-    })));
-  }, [messages]);
+  // Handle empty state
+  if (!messages || messages.length === 0) {
+    return (
+      <div className={cn("flex items-center justify-center h-full p-4", className)}>
+        <div className="text-center text-gray-400">
+          <p className="text-lg mb-2">No messages yet</p>
+          <p className="text-sm">Start a conversation below</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("flex-1 overflow-y-auto p-4 space-y-4", className)}>
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          className={cn(
-            "flex gap-3",
-            message.role === "user" ? "justify-end" : "justify-start"
-          )}
-        >
-          {message.role === "assistant" && (
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
-              {message.persona?.name?.[0]?.toUpperCase() || "AI"}
-            </div>
-          )}
-          
+    <div className={cn("p-4 space-y-4 min-h-full", className)}>
+      {messages.map((message) => {
+        // Add null check for message
+        if (!message || !message.id) {
+          console.warn("Invalid message:", message);
+          return null;
+        }
+
+        return (
           <div
+            key={message.id}
             className={cn(
-              "max-w-[80%]",
-              message.role === "user" ? "" : "flex flex-col gap-1"
+              "flex gap-3 items-start",
+              message.role === "user" ? "justify-end" : "justify-start"
             )}
           >
-            {message.role === "assistant" && message.persona && (
-              <div className="text-xs font-medium text-gray-600 px-1">
-                {message.persona.name}
+            {message.role === "assistant" && (
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                {message.persona?.name?.[0]?.toUpperCase() || "AI"}
               </div>
             )}
             
             <div
               className={cn(
-                "rounded-lg px-4 py-2",
-                message.role === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-900"
+                "max-w-[70%] min-w-[100px]",
+                message.role === "user" ? "" : "flex flex-col gap-1"
               )}
-              data-testid={message.role === "assistant" ? "assistant-message" : "user-message"}
             >
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === "assistant" && message.persona && (
+                <div className="text-xs font-medium text-gray-600 px-1">
+                  {message.persona.name}
                 </div>
-                {message.audio_url && (
-                  <AudioPlayer 
-                    audioUrl={message.audio_url} 
-                    autoPlay={message.role === "assistant"}
-                  />
+              )}
+              
+              <div
+                className={cn(
+                  "rounded-lg px-4 py-2 break-words",
+                  message.role === "user"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-900"
                 )}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {message.content || "(empty message)"}
+                    </p>
+                  </div>
+                  {message.audio_url && (
+                    <div className="flex-shrink-0">
+                      <AudioPlayer 
+                        audioUrl={message.audio_url} 
+                        autoPlay={message.role === "assistant"}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {message.role === "user" && (
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-sm font-medium">
-              U
-            </div>
-          )}
-        </div>
-      ))}
+            {message.role === "user" && (
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-sm font-medium">
+                U
+              </div>
+            )}
+          </div>
+        );
+      })}
       <div ref={messagesEndRef} />
     </div>
   );

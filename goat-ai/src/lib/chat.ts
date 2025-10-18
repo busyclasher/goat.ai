@@ -75,7 +75,9 @@ export async function createConversation(
   }
 }
 
-export async function sendMessage(conversationId: string, content: string, audioUrl?: string, personaId?: string): Promise<boolean> {
+export async function sendMessage(conversationId: string, content: string): Promise<boolean> {
+  console.log(`Sending user message to conversation ${conversationId}:`, { content });
+
   const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
   
   // Demo mode: add to in-memory conversation
@@ -87,8 +89,8 @@ export async function sendMessage(conversationId: string, content: string, audio
         conversation_id: conversationId,
         role: 'user',
         content,
-        audio_url: audioUrl,
-        persona_id: personaId,
+        audio_url: undefined, // audioUrl is no longer a parameter
+        persona_id: undefined, // personaId is no longer a parameter
         created_at: new Date().toISOString()
       }
       conversation.messages.push(newMessage)
@@ -103,7 +105,7 @@ export async function sendMessage(conversationId: string, content: string, audio
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ conversationId, role: 'user', content, audioUrl, personaId }),
+      body: JSON.stringify({ conversationId, role: 'user', content, audioUrl: undefined, personaId: undefined }), // audioUrl and personaId are no longer parameters
     });
 
     return response.ok;
@@ -114,6 +116,8 @@ export async function sendMessage(conversationId: string, content: string, audio
 }
 
 export async function addAssistantMessage(conversationId: string, content: string, audioUrl?: string, personaId?: string): Promise<boolean> {
+  console.log(`Adding assistant message to conversation ${conversationId}:`, { content, audioUrl, personaId });
+
   const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
   
   // Demo mode: add to in-memory conversation

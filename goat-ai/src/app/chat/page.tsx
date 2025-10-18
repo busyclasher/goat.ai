@@ -340,7 +340,7 @@ function ChatPageContent() {
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+      <header className="flex items-center justify-between p-4 border-b bg-gray-50 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link href="/landing" className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -353,20 +353,23 @@ function ChatPageContent() {
             <p className="text-sm text-gray-500">@{persona.slug}</p>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Chat */}
-      <ChatList 
-        messages={conversation?.messages || []} 
-        className="flex-1"
-      />
+      <main className="flex-1 overflow-y-auto">
+        <ChatList 
+          messages={conversation?.messages || []} 
+        />
+      </main>
 
       {/* Composer */}
-      <Composer
-        onSend={handleSendMessage}
-        onPersonaSwitch={handlePersonaSwitch}
-        disabled={!conversationId}
-      />
+      <footer className="flex-shrink-0">
+        <Composer
+          onSend={handleSendMessage}
+          onPersonaSwitch={handlePersonaSwitch}
+          disabled={!conversationId}
+        />
+      </footer>
 
       {/* Toast */}
       {toast && (

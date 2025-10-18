@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     const { error: messageError } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       role,
-      text: content, // Ensure we are writing to the 'text' column
+      content: content,
+      text: content, // Write to both `text` and `content` to satisfy legacy schema
       audio_url: audioUrl,
     });
 

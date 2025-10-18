@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceStyleId, voiceId } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const { text, voiceStyleId, voiceId } = body;
     
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
