@@ -39,9 +39,34 @@ export default function LandingPage() {
 
   const fetchPersonas = async () => {
     const fetchedPersonas = await listPersonas();
-    setPersonas(fetchedPersonas);
-    if (fetchedPersonas.length > 0 && !selectedPersona) {
-      setSelectedPersona(fetchedPersonas[0]);
+    
+    // Define the desired order of persona slugs
+    const desiredOrder = ['sherryjiang', 'warrenbuffett', 'elonmusk', 'morganfreeman', 'mentor'];
+
+    // Sort the fetched personas
+    const sortedPersonas = fetchedPersonas.sort((a, b) => {
+      const indexA = desiredOrder.indexOf(a.slug);
+      const indexB = desiredOrder.indexOf(b.slug);
+
+      // If both are in the desired order list, sort by that order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only A is in the list, it comes first
+      if (indexA !== -1) {
+        return -1;
+      }
+      // If only B is in the list, it comes first
+      if (indexB !== -1) {
+        return 1;
+      }
+      // Otherwise, maintain original order (or sort alphabetically by name, for example)
+      return a.name.localeCompare(b.name);
+    });
+
+    setPersonas(sortedPersonas);
+    if (sortedPersonas.length > 0 && !selectedPersona) {
+      setSelectedPersona(sortedPersonas[0]);
     }
   };
 
@@ -164,29 +189,13 @@ export default function LandingPage() {
             Choose Your AI Mentor
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Create New Persona Card */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="p-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-all group"
-            >
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                <Plus className="w-8 h-8" />
-              </div>
-              <h4 className="font-semibold text-gray-900 text-center mb-1">
-                Create Persona
-              </h4>
-              <p className="text-xs text-gray-500 text-center">
-                Add custom AI mentor
-              </p>
-            </button>
-
             {/* Existing Personas */}
             {personas.map((persona) => (
-              <button
+              <div
                 key={persona.slug}
                 onClick={() => setSelectedPersona(persona)}
                 onDoubleClick={() => handleStartChat(persona.slug)}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all cursor-pointer ${
                   selectedPersona?.slug === persona.slug
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
@@ -213,8 +222,24 @@ export default function LandingPage() {
                 <p className="text-xs text-gray-500 text-center line-clamp-2">
                   {persona.description || persona.system_prompt}
                 </p>
-              </button>
+              </div>
             ))}
+
+            {/* Create New Persona Card */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="p-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+            >
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <Plus className="w-8 h-8" />
+              </div>
+              <h4 className="font-semibold text-gray-900 text-center mb-1">
+                Create Persona
+              </h4>
+              <p className="text-xs text-gray-500 text-center">
+                Add custom AI mentor
+              </p>
+            </button>
           </div>
         </div>
 
@@ -235,7 +260,7 @@ export default function LandingPage() {
 
       {/* Footer Note */}
       <footer className="text-center py-8 text-gray-500 text-sm">
-        <p>&copy; 2024 Goat AI. All rights reserved.</p>
+        <p>&copy; 2025 Goat.AI. All rights reserved.</p>
       </footer>
     </div>
   );

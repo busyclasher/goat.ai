@@ -145,17 +145,43 @@ export function MicrophoneWaveform({
   barGap = 2,
   ...props
 }: MicrophoneWaveformProps) {
-  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [barCount, setBarCount] = useState(0);
+  const [waveformData, setWaveformData] = useState<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
+    const calculateBarCount = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 0) {
+          const totalBarWidth = barWidth + barGap;
+          const newBarCount = Math.floor(rect.width / totalBarWidth);
+          setBarCount(newBarCount);
+        }
+      }
+    };
+
+    // Delay calculation to allow for layout rendering
+    const timeoutId = setTimeout(calculateBarCount, 10);
+
+    window.addEventListener("resize", calculateBarCount);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", calculateBarCount);
+    };
+  }, [barWidth, barGap]);
+
+  useEffect(() => {
     if (!active) {
-      setWaveformData(Array(50).fill(0));
+      setWaveformData(Array(barCount).fill(0));
       return;
     }
+
+    if (barCount === 0) return;
 
     let mounted = true;
 
@@ -181,7 +207,6 @@ export function MicrophoneWaveform({
         sourceRef.current = source;
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const barCount = 50;
 
         const updateWaveform = () => {
           if (!mounted || !analyserRef.current) return;
@@ -226,9 +251,13 @@ export function MicrophoneWaveform({
         audioContextRef.current.close();
       }
     };
-  }, [active, fftSize, smoothingTimeConstant, sensitivity, onError]);
+  }, [active, fftSize, smoothingTimeConstant, sensitivity, onError, barCount]);
 
-  return <Waveform data={waveformData} barWidth={barWidth} barGap={barGap} {...props} />;
+  return (
+    <div ref={containerRef} className="w-full h-full">
+      <Waveform data={waveformData} barWidth={barWidth} barGap={barGap} {...props} />
+    </div>
+  );
 }
 
 // Recording Waveform Component
