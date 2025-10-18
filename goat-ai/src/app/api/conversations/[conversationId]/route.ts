@@ -33,7 +33,10 @@ export async function GET(request: Request) {
     // 2. Fetch the messages for the conversation
     const { data: messages, error: messagesError } = await supabase
       .from("messages")
-      .select("*")
+      .select(`
+        *,
+        persona:personas(*)
+      `)
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
 
@@ -50,7 +53,10 @@ export async function GET(request: Request) {
       ...conversation,
       messages: messages || [],
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "An unknown error occurred" }, { status: 500 });
   }
 }

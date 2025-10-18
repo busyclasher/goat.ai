@@ -2,8 +2,8 @@
 
 /**
  * Quick script to update a persona's voice ID
- * Usage: node scripts/update-voice-id.js <persona-slug> <elevenlabs-voice-id>
- * Example: node scripts/update-voice-id.js sherry-jiang 21m00Tcm4TlvDq8ikWAM
+ * Usage: node scripts/update-voice-id.js <personaslug> <elevenlabs-voice-id>
+ * Example: node scripts/update-voice-id.js sherryjiang 21m00Tcm4TlvDq8ikWAM
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -65,7 +65,7 @@ if (!slug || !voiceId) {
   console.log('📖 Usage: node scripts/update-voice-id.js <persona-slug> <voice-id>');
   console.log('');
   console.log('Example:');
-  console.log('  node scripts/update-voice-id.js sherry-jiang 21m00Tcm4TlvDq8ikWAM');
+  console.log('  node scripts/update-voice-id.js sherryjiang 21m00Tcm4TlvDq8ikWAM');
   console.log('');
   console.log('To get your ElevenLabs voice ID:');
   console.log('  1. Go to https://elevenlabs.io/');

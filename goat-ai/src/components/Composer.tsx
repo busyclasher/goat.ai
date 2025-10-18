@@ -5,33 +5,40 @@ import { Send, Loader2 } from "lucide-react";
 import { MicButton } from "./MicButton";
 import { Toast } from "./Toast";
 import { cn } from "@/lib/utils";
+import { PersonaSuggestions } from "./PersonaSuggestions";
+import type { Persona } from "@/lib/supabase";
 
 interface ComposerProps {
   onSend: (message: string) => void;
   onPersonaSwitch: (slug: string, remainingMessage?: string) => Promise<void>;
   disabled?: boolean;
   className?: string;
+  personas: Persona[];
 }
 
 export function Composer({ 
   onSend, 
   onPersonaSwitch, 
   disabled = false,
-  className 
+  className,
+  personas
 }: ComposerProps) {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [suggestions, setSuggestions] = useState<Persona[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isSending || disabled) return;
 
     // Check for persona switch - detect @mention anywhere in message
-    const personaMatch = message.match(/@(\w+)(?:\s+(.*))?/);
+    // Supports hyphens in persona slugs (e.g., @warren-buffett)
+    const personaMatch = message.match(/@([\w-]+)(?:\s+(.*))?/);
     if (personaMatch) {
-      const [fullMatch, slug, remainingMessage] = personaMatch;
+      const [, slug, remainingMessage] = personaMatch;
       
       setIsSending(true);
       try {
@@ -54,6 +61,30 @@ export function Composer({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+
+    const mentionMatch = value.match(/@(\w*)$/);
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      const filteredPersonas = personas.filter(p =>
+        p.slug.toLowerCase().startsWith(query)
+      );
+      setSuggestions(filteredPersonas);
+      setShowSuggestions(filteredPersonas.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (slug: string) => {
+    const updatedMessage = message.replace(/@(\w*)$/, `@${slug} `);
+    setMessage(updatedMessage);
+    setShowSuggestions(false);
+    textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -87,7 +118,7 @@ export function Composer({
           <textarea
             ref={textareaRef}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="@ to switch persona, or type a message..."
             className="w-full h-12 p-3 bg-gray-100 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all text-gray-900"

@@ -16,6 +16,7 @@ interface Message {
     slug: string;
     name: string;
     voice_id?: string;
+    avatar_url?: string;
   };
   created_at: string;
 }
@@ -56,9 +57,13 @@ export function ChatList({ messages, className }: ChatListProps) {
             )}
           >
             {message.role === "assistant" && (
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
-                {message.persona?.name?.[0]?.toUpperCase() || "AI"}
-              </div>
+              message.persona?.avatar_url ? (
+                <Image src={message.persona.avatar_url} alt={message.persona.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                  {message.persona?.name?.[0]?.toUpperCase() || "AI"}
+                </div>
+              )
             )}
             
             <div
@@ -91,7 +96,6 @@ export function ChatList({ messages, className }: ChatListProps) {
                     <div className="flex-shrink-0">
                       <AudioPlayer 
                         audioUrl={message.audio_url} 
-                        autoPlay={message.role === "assistant"}
                       />
                     </div>
                   )}

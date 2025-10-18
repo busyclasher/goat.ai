@@ -76,7 +76,7 @@ If you prefer to update the voice ID directly via SQL:
 -- Update Sherry's voice ID
 UPDATE personas 
 SET voice_id = 'YOUR_ACTUAL_VOICE_ID_HERE'
-WHERE slug = 'sherry-jiang';
+WHERE slug = 'sherryjiang';
 ```
 
 ### Step 4: Verify Setup
