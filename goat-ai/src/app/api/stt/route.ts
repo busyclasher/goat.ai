@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         // ElevenLabs expects multipart/form-data with 'file' field and 'model_id'
         const sttFormData = new FormData();
         sttFormData.append('file', audioBlob, audioFile.name);
-        sttFormData.append('model_id', 'eleven_turbo_v2');
+        sttFormData.append('model_id', 'scribe_v1');
         
         const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
           method: "POST",
