@@ -29,6 +29,7 @@ function ChatPageContent() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [conversation, setConversation] = useState<(ConversationType & { messages: Message[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   const hasAutoSentRef = useRef(false);
@@ -319,6 +320,7 @@ function ChatPageContent() {
 
     try {
       setError(null);
+      setIsReplying(true);
       const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
       
       // Send user message (no persona_id for user messages)
@@ -332,6 +334,9 @@ function ChatPageContent() {
 
       // Generate AI response
       const response = await generateAIResponse(finalContent, activePersona, activeConversationId);
+
+      // Hide indicator before showing the message
+      setIsReplying(false);
 
       const newMessage = await addAssistantMessage(activeConversationId, response.text, response.audioUrl, activePersona.id);
 
@@ -362,6 +367,7 @@ function ChatPageContent() {
     } catch (err) {
       console.error("Error sending message:", err);
       setToast({ message: "Failed to send message", type: "error" });
+      setIsReplying(false);
     }
   }, [conversationId, persona, personas, generateAIResponse]);
 
@@ -457,7 +463,9 @@ function ChatPageContent() {
               />
             ) : (
               <ChatList 
-                messages={conversation.messages} 
+                messages={conversation.messages}
+                isLoading={isReplying}
+                activePersona={persona}
                 autoPlayMessageId={autoPlayMessageId}
                 onAutoPlayComplete={handleAutoPlayComplete}
               />
