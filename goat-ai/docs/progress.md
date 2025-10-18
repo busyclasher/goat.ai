@@ -1,18 +1,123 @@
 # GOAT.ai — Progress Report
 
-_Last updated: October 18, 2025 (Evening Update)_
+_Last updated: October 18, 2025 (Evening - Avatar Feature Added)_
 
 ---
 
 ## 📊 Executive Summary
 
-**Overall Progress: ~90% Complete**
+**Overall Progress: ~95% Complete**
 
-The MVP is largely functional with all core features implemented. The application successfully demonstrates voice-to-text input, AI chat with personas, and text-to-speech output. Key areas needing attention: performance optimization to meet <5s round-trip requirement, real-time message updates, and final demo preparation.
+The MVP is fully functional with all core features implemented and enhanced. The application successfully demonstrates voice-to-text input, AI chat with personas using emotion annotations for expressive speech, and text-to-speech output with vocal inflections. Personas now utilize their full style bullets and taboo topics during conversations. Key remaining areas: performance optimization to meet <5s round-trip requirement and final demo preparation.
 
 ---
 
 ## 🔧 Latest Fixes (October 18, 2025 - Evening)
+
+### New Feature: Automatic Persona Avatar Fetching
+
+**Feature:** Persona creation now automatically fetches profile images from Google Custom Search API.
+
+**Implementation:**
+1. ✅ **Image Search Utility** - `lib/utils.ts`
+   - Added `searchPersonImage()` function to fetch profile images via Google Custom Search API
+   - Takes person's name and searches for "[name] profile" images
+   - Returns first high-quality image URL or null if not found
+   - Graceful error handling - failures don't block persona creation
+   - Requires `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` environment variables
+
+2. ✅ **Persona Creation Integration** - `api/personas/create/route.ts`
+   - Fetches avatar image automatically after building persona from Exa
+   - Stores avatar URL in `avatar_url` field in database
+   - Continues successfully even if image fetch fails (null value stored)
+   - No additional latency concerns - runs in parallel with voice generation
+
+3. ✅ **UI Display** - `components/ChatList.tsx`
+   - Already had avatar display logic implemented
+   - Shows rounded profile image if `avatar_url` exists
+   - Falls back to initials in colored circle if no image
+   - Clean, professional look for persona messages
+
+**Setup Required:**
+- User needs to configure Google Custom Search API (free tier: 100 searches/day)
+- Documentation created in `GOOGLE_IMAGE_SEARCH_SETUP.md`
+- Environment variables: `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID`
+
+**Benefits:**
+- More engaging visual experience with real profile photos
+- Professional appearance in chat interface
+- Automatic - no manual image uploads needed
+- Graceful fallbacks ensure persona creation never fails
+
+**Files Modified:**
+- `/src/lib/utils.ts` - Added searchPersonImage() function
+- `/src/app/api/personas/create/route.ts` - Integrated avatar fetching
+- Documentation: Created `GOOGLE_IMAGE_SEARCH_SETUP.md` with setup instructions
+
+**Note:** No new API endpoint needed - functionality integrated into existing persona creation flow.
+
+---
+
+## 🔧 Previous Fixes (October 18, 2025 - Late Evening)
+
+### Enhancement: Emotion Tags & Enhanced Persona System
+
+**Feature:** AI responses now include emotion/delivery tags for expressive TTS while displaying clean text in UI.
+
+**Implementation:**
+1. ✅ **Enhanced Chat System Prompt** - `/api/chat/route.ts`
+   - Now fetches `style_bullets` and `taboo` from database alongside `system_prompt`
+   - Appends style bullets as "Communication Style" context
+   - Appends taboo topics as "Topics to Avoid" context
+   - Adds emotion instruction reminder to every chat request
+   - AI receives full persona context for authentic responses
+
+2. ✅ **Updated Persona Generation** - `lib/personas.ts`
+   - Modified Groq prompt to instruct AI to include emotion tags in systemPrompt
+   - Tags like `[sarcastically]`, `[giggles]`, `[whispers]`, `[thoughtfully]` etc.
+   - New personas automatically get emotion annotation instructions
+   - Captures HOW things are said, not just what is said
+
+3. ✅ **Emotion Tag Stripping Utility** - `lib/utils.ts`
+   - Added `stripEmotionTags()` function to remove bracketed tags from display text
+   - Uses regex: `/\[[\w\s]+\]/g` to match emotion annotations
+   - Cleans up spacing after tag removal
+
+4. ✅ **Clean UI Display** - `components/ChatList.tsx`
+   - Imports and applies `stripEmotionTags()` to all message content
+   - Users see polished text without technical markup
+   - Database preserves full text with emotion tags
+
+5. ✅ **TTS Preservation** - `api/tts/route.ts`
+   - Verified text is passed directly to ElevenLabs without modification
+   - Emotion tags preserved for voice modulation
+   - ElevenLabs API supports square bracket annotations for prosody
+
+**Example Flow:**
+- AI generates: `"That's interesting. [thoughtfully] Well, based on my experience... [chuckles] it's not quite that simple."`
+- User sees: `"That's interesting. Well, based on my experience... it's not quite that simple."`
+- TTS receives: Full text with tags for expressive speech synthesis
+
+**Benefits:**
+- Richer, more natural-sounding voice synthesis
+- Clean, professional UI without technical markup
+- Better persona adherence through style bullets and taboo topics
+- Authentic conversations that capture vocal nuances
+
+**Files Modified:**
+- `/src/app/api/chat/route.ts` - Enhanced system prompt builder with style/taboo context
+- `/src/lib/personas.ts` - Updated persona generation instructions for emotion tags
+- `/src/lib/utils.ts` - Added stripEmotionTags utility function
+- `/src/components/ChatList.tsx` - Strip tags for clean display
+- Documentation: Created `EMOTION_TAGS_IMPLEMENTATION.md` with full technical details
+
+**Documentation:**
+- See `/EMOTION_TAGS_IMPLEMENTATION.md` for complete implementation details
+- Includes data flow diagrams, supported emotion tags, and testing checklist
+
+---
+
+## 🔧 Previous Fixes (October 18, 2025 - Evening)
 
 ### Critical Bug: TTS Audio Not Playing
 

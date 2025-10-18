@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPersona, buildPersonaFromExa } from "@/lib/personas";
+import { searchPersonImage } from "@/lib/utils";
 
 // Using user-selected gender to assign appropriate voice
 // Female voice: Qv0aP47SJsL43Pn6x7k9 (Sherry's voice)
@@ -47,6 +48,10 @@ export async function POST(request: NextRequest) {
     console.log("[Persona Creation] Building persona from Exa...");
     const personaData = await buildPersonaFromExa(slug, name, query || name);
 
+    // Fetch profile image
+    console.log("[Persona Creation] Fetching profile image...");
+    const avatarUrl = await searchPersonImage(name);
+    
     console.log(
       "[Persona Creation] Detected gender from Groq:",
       personaData.gender
@@ -56,27 +61,106 @@ export async function POST(request: NextRequest) {
     const selectedGender = gender || personaData.gender || "male";
     console.log("[Persona Creation] Selected gender:", selectedGender);
 
-    // Assign voice based on gender (simple gender-based assignment)
-    const voiceId =
-      selectedGender === "female" ? FEMALE_VOICE_ID : MALE_VOICE_ID;
+    // Default fallback voices
+    let voiceId = selectedGender === "female" ? FEMALE_VOICE_ID : MALE_VOICE_ID;
+    let customVoiceGenerated = false;
+
+    // Attempt custom voice generation if we have voice characteristics
+    if (personaData.voiceDescription && personaData.sampleText) {
+      console.log("[Persona Creation] 🎤 Attempting custom voice generation...");
+      console.log(
+        "[Persona Creation] Voice description:",
+        personaData.voiceDescription
+      );
+      console.log("[Persona Creation] Sample text:", personaData.sampleText);
+
+      try {
+        // Call our voice generation endpoint
+        const baseUrl =
+          process.env.NEXT_PUBLIC_BASE_URL ||
+          (process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : "http://localhost:3000");
+
+        const voiceGenResponse = await fetch(
+          `${baseUrl}/api/elevenlabs/generate-voice`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              voiceDescription: personaData.voiceDescription,
+              previewText: personaData.sampleText,
+              gender: selectedGender,
+            }),
+          }
+        );
+
+        if (voiceGenResponse.ok) {
+          const voiceGenData = await voiceGenResponse.json();
+
+          if (voiceGenData.success && voiceGenData.voice_id) {
+            voiceId = voiceGenData.voice_id;
+            customVoiceGenerated = true;
+            console.log(
+              "[Persona Creation] ✅ Custom voice generated successfully!"
+            );
+            console.log("[Persona Creation] Voice ID:", voiceId);
+          } else if (voiceGenData.fallback) {
+            console.log(
+              "[Persona Creation] ⚠️ Voice generation not available (plan limitation)"
+            );
+            console.log("[Persona Creation] Using gender-based fallback voice");
+          }
+        } else {
+          const errorData = await voiceGenResponse.json();
+          console.log(
+            "[Persona Creation] ⚠️ Voice generation failed:",
+            errorData.error
+          );
+          console.log("[Persona Creation] Using gender-based fallback voice");
+        }
+      } catch (error: any) {
+        console.error(
+          "[Persona Creation] Voice generation error:",
+          error.message
+        );
+        console.log("[Persona Creation] Using gender-based fallback voice");
+      }
+    } else {
+      console.log(
+        "[Persona Creation] ℹ️ No voice characteristics provided by Groq"
+      );
+      console.log("[Persona Creation] Using gender-based fallback voice");
+    }
+
     console.log(
-      `[Persona Creation] Assigned ${selectedGender} voice:`,
-      voiceId
+      `[Persona Creation] Final voice assignment: ${voiceId} ${
+        customVoiceGenerated ? "(custom)" : "(fallback)"
+      }`
     );
 
     // Remove temporary fields from persona data before saving (not in DB schema)
-    const { gender: detectedGender, ...personaToSave } = personaData;
+    const {
+      gender: detectedGender,
+      voiceDescription,
+      sampleText,
+      ...personaToSave
+    } = personaData;
 
     // Ensure all required fields are present with proper defaults
     const personaForDB = {
       slug: personaToSave.slug,
       name: personaToSave.name,
+      description: personaToSave.description,
       style_bullets: personaToSave.style_bullets || [],
       taboo: personaToSave.taboo || [],
       system_prompt:
         personaToSave.system_prompt || "You are a helpful assistant.",
       sources: personaToSave.sources || [],
       voice_id: voiceId,
+      avatar_url: avatarUrl || undefined,
     };
 
     console.log("[Persona Creation] Saving to database with data:");
@@ -103,6 +187,8 @@ export async function POST(request: NextRequest) {
       persona: newPersona,
       gender: selectedGender,
       voiceId: voiceId,
+      customVoice: customVoiceGenerated,
+      voiceDescription: personaData.voiceDescription,
     });
   } catch (error: any) {
     console.error("Error creating persona:", error);

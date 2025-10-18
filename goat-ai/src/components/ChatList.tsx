@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Copy, Check } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
-import { cn } from "@/lib/utils";
+import { cn, stripEmotionTags } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -90,7 +90,7 @@ export function ChatList({ messages, className }: ChatListProps) {
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content || "(empty message)"}
+                      {stripEmotionTags(message.content) || "(empty message)"}
                     </p>
                   </div>
                   {message.audio_url && (

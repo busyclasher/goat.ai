@@ -254,13 +254,71 @@ export async function buildPersonaFromExa(
 6. GENDER IDENTIFICATION:
    - Based on the person's name and content, determine their gender: "male", "female", or "other"
 
+7. VOICE CHARACTERISTICS:
+   Based on the person's profile, infer their likely voice characteristics:
+
+   AGE RANGE:
+   - young adult (20-35): energetic, modern, quick
+   - middle-aged (36-55): authoritative, mature, steady
+   - mature (56+): wise, measured, deep
+
+   VOCAL PACE:
+   - fast: rapid-fire, energetic speakers (e.g., entrepreneurs, coaches)
+   - moderate: balanced, conversational (most people)
+   - slow: deliberate, thoughtful (e.g., academics, philosophers)
+
+   ENERGY LEVEL:
+   - high-energy: enthusiastic, animated (e.g., motivational speakers)
+   - measured: professional, controlled (e.g., executives, experts)
+   - calm: soothing, gentle (e.g., therapists, spiritual teachers)
+
+   ACCENT:
+   - American: default for US-based individuals
+   - British: UK-based individuals or those with British education
+   - Australian: Australia-based individuals
+   - neutral: international or unclear origin
+   - other: specify if notable (e.g., Indian, French, etc.)
+
+   TONE QUALITIES (select 2-3):
+   - authoritative: commands respect, decisive
+   - warm: friendly, approachable, caring
+   - confident: self-assured, bold
+   - professional: formal, polished
+   - casual: relaxed, conversational
+   - analytical: logical, precise
+   - passionate: intense, emotional
+   - humorous: playful, witty
+
+   VOCAL TEXTURE:
+   - smooth: polished, easy to listen to
+   - clear: crisp, articulate
+   - resonant: rich, full-bodied
+   - raspy: textured, distinctive
+   - soft: gentle, quiet
+   - deep: low-pitched, commanding
+
+   OUTPUT FORMAT:
+   Create a single-sentence voice description:
+   "[age] [gender] with [accent] accent, [tone1] and [tone2] tone, [pace] delivery"
+
+   Examples:
+   - "middle-aged male with American accent, authoritative and confident tone, measured delivery"
+   - "young adult female with British accent, warm and professional tone, moderate delivery"
+   - "mature male with neutral accent, analytical and calm tone, slow delivery"
+
+   Also create a sample text (100-150 characters) that captures how this person would naturally speak,
+   using their signature phrases, topics, or communication style.
+
 Based on this analysis, generate:
+- description: A concise, engaging description (max 2 sentences) suitable for display on a landing page. Focus on who they are and their key expertise. Write in third person (e.g., "Jeff Bezos is the founder of Amazon and Blue Origin. He's known for customer obsession and long-term thinking."). Make it compelling and brief for users choosing which persona to chat with.
 - styleBullets: 5-7 specific traits that capture HOW they communicate
 - taboo: 3-5 specific topics/approaches to avoid
-- systemPrompt: A detailed prompt (≤400 tokens) that MUST start with "You are [Full Name]". The prompt should instruct the AI to embody and respond AS this person in first person, NOT to talk TO them. Make it specific, actionable, and authentic - not generic. Include concrete instructions about their communication style, tone, pacing, and response patterns. Reference their real expertise areas. Example: "You are Jeff Bezos, founder of Amazon and Blue Origin. You speak with..." NOT "You are talking to Jeff Bezos..."
+- systemPrompt: A detailed prompt (≤400 tokens) that MUST start with "You are [Full Name]". The prompt should instruct the AI to embody and respond AS this person in first person, NOT to talk TO them. Make it specific, actionable, and authentic - not generic. Include concrete instructions about their communication style, tone, pacing, and response patterns. Reference their real expertise areas. IMPORTANT: Instruct the AI to add emotion/delivery tags like [sarcastically], [giggles], [whispers], [excitedly], [thoughtfully], [softly], [chuckles] etc. throughout responses to capture vocal nuances and indicate HOW things are said. These tags should be used naturally to reflect their speaking style. Example: "You are Jeff Bezos, founder of Amazon and Blue Origin. You speak with... Use emotion tags like [thoughtfully], [chuckles] to show how you say things, not just what you say." NOT "You are talking to Jeff Bezos..."
 - gender: "male", "female", or "other"
+- voiceDescription: single sentence as described above
+- sampleText: 100-150 chars in their voice
 
-Format as JSON with keys: styleBullets, taboo, systemPrompt, gender`,
+Format as JSON with keys: description, styleBullets, taboo, systemPrompt, gender, voiceDescription, sampleText`,
             },
             {
               role: "user",
@@ -283,6 +341,7 @@ Format as JSON with keys: styleBullets, taboo, systemPrompt, gender`,
     return {
       slug,
       name: name || slug,
+      description: personaData.description,
       style_bullets: personaData.styleBullets || [],
       taboo: personaData.taboo || [],
       system_prompt: personaData.systemPrompt || "You are a helpful assistant.",
@@ -294,6 +353,8 @@ Format as JSON with keys: styleBullets, taboo, systemPrompt, gender`,
         })
       ),
       gender: personaData.gender || "other",
+      voiceDescription: personaData.voiceDescription,
+      sampleText: personaData.sampleText,
     };
   } catch (error) {
     console.error("Error building persona from Exa:", error);

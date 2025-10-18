@@ -19,6 +19,7 @@ export interface Persona {
   id: string
   slug: string
   name: string
+  description?: string
   style_bullets: string[]
   taboo: string[]
   system_prompt: string

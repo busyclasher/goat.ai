@@ -118,7 +118,9 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-gray-900 mb-2">
               {selectedPersona.name}
             </h2>
-            <p className="text-xl text-gray-600 mb-4">{selectedPersona.system_prompt}</p>
+            <p className="text-xl text-gray-600 mb-4">
+              {selectedPersona.description || selectedPersona.system_prompt}
+            </p>
             
             {/* Action Buttons */}
             <div className="flex items-center justify-center gap-4">
@@ -204,7 +206,7 @@ export default function LandingPage() {
                   {persona.name}
                 </h4>
                 <p className="text-xs text-gray-500 text-center line-clamp-2">
-                  {persona.system_prompt}
+                  {persona.description || persona.system_prompt}
                 </p>
               </button>
             ))}

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const personaId = conversationData.persona_id;
     const { data: personaData, error: personaError } = await supabase
       .from("personas")
-      .select("id, system_prompt")
+      .select("id, system_prompt, style_bullets, taboo")
       .eq("id", personaId)
       .single();
 
@@ -62,10 +62,22 @@ export async function POST(req: Request) {
 
     // 3. Build messages array: system prompt + history
     // Note: The current user message is already saved in DB and included in messageHistory
+    
+    // Build enhanced system prompt with style bullets and taboo
+    const styleContext = personaData.style_bullets?.length 
+      ? `\n\nCommunication Style:\n${personaData.style_bullets.map((s: string) => `- ${s}`).join('\n')}`
+      : '';
+
+    const tabooContext = personaData.taboo?.length
+      ? `\n\nTopics to Avoid:\n${personaData.taboo.map((t: string) => `- ${t}`).join('\n')}`
+      : '';
+
+    const emotionInstructions = `\n\nIMPORTANT: Use emotion/delivery tags like [sarcastically], [giggles], [whispers], [excitedly], [thoughtfully], [chuckles], [softly] etc. throughout your responses to indicate how you're saying things. Place them naturally where vocal inflection would occur.`;
+
     const messages = [
       {
         role: "system" as const,
-        content: activePersona.system_prompt,
+        content: activePersona.system_prompt + styleContext + tabooContext + emotionInstructions,
       },
       // Add conversation history (includes the current user message)
       ...(messageHistory || []).map((msg) => ({

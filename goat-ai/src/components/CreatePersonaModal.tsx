@@ -20,6 +20,7 @@ export default function CreatePersonaModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [responseData, setResponseData] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +56,13 @@ export default function CreatePersonaModal({
       // Log voice assignment
       console.log(
         "🎤 Voice assigned:",
-        data.gender === "female" ? "Sherry (female)" : "Default (male)"
+        data.customVoice ? "Custom voice generated!" : `${data.gender === "female" ? "Sherry (female)" : "Roger (male)"} fallback`
       );
+      if (data.voiceDescription) {
+        console.log("Voice description:", data.voiceDescription);
+      }
 
+      setResponseData(data);
       setSuccess(true);
 
       // Wait a moment to show success state
@@ -78,6 +83,7 @@ export default function CreatePersonaModal({
     setError("");
     setSuccess(false);
     setIsLoading(false);
+    setResponseData(null);
     onClose();
   };
 
@@ -123,7 +129,7 @@ export default function CreatePersonaModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Tim Ferriss, Marie Curie"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-black placeholder:text-gray-600"
               disabled={isLoading || success}
               autoFocus
             />
@@ -141,7 +147,7 @@ export default function CreatePersonaModal({
               id="gender"
               value={gender}
               onChange={(e) => setGender(e.target.value as "male" | "female")}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-black"
               disabled={isLoading || success}
             >
               <option value="male">Male (Default Voice)</option>
@@ -163,7 +169,7 @@ export default function CreatePersonaModal({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="e.g., author, productivity expert"
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-black placeholder:text-gray-600"
               disabled={isLoading || success}
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -181,11 +187,20 @@ export default function CreatePersonaModal({
 
           {/* Success Message */}
           {success && (
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <Check className="w-5 h-5 text-green-500" />
-              <p className="text-sm text-green-700">
-                Persona created successfully!
-              </p>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-1">
+                <Check className="w-5 h-5 text-green-500" />
+                <p className="text-sm font-medium text-green-700">
+                  {responseData?.customVoice
+                    ? "Persona created with custom voice!"
+                    : "Persona created successfully!"}
+                </p>
+              </div>
+              {responseData?.voiceDescription && (
+                <p className="text-xs text-gray-600 ml-7">
+                  Voice: {responseData.voiceDescription}
+                </p>
+              )}
             </div>
           )}
 
@@ -219,9 +234,14 @@ export default function CreatePersonaModal({
           </p>
         )}
         {isLoading && (
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Researching persona and assigning voice...
-          </p>
+          <div className="text-center mt-4">
+            <p className="text-xs text-gray-600 font-medium">
+              Researching persona and generating custom voice...
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              This may take 10-15 seconds
+            </p>
+          </div>
         )}
       </div>
     </div>
