@@ -132,28 +132,27 @@ export function Composer({
             rows={1}
             style={{ minHeight: "40px", maxHeight: "120px" }}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-            <MicButton
-              onTranscription={handleTranscription}
-              onError={handleError}
-              disabled={disabled || isSending}
-              className="w-8 h-8"
-            />
-          </div>
         </div>
         
-        <button
-          type="submit"
-          disabled={!message.trim() || isSending || disabled}
-          className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-          aria-label="Send message"
-        >
-          {isSending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
-        </button>
+        <div className="flex-shrink-0 flex items-center gap-2">
+            <MicButton
+                onTranscription={handleTranscription}
+                onError={handleError}
+                disabled={disabled || isSending}
+            />
+            <button
+                type="submit"
+                disabled={!message.trim() || isSending || disabled}
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                aria-label="Send message"
+            >
+                {isSending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                    <Send className="w-5 h-5" />
+                )}
+            </button>
+        </div>
       </form>
 
       {toastMessage && (
