@@ -1,0 +1,129 @@
+---
+alwaysApply: true
+---
+
+# Cursor Development Rules
+
+## Core Principles
+
+### First Principle: Lean Engineering
+**ALWAYS apply lean engineering principles before writing any code:**
+- Write the minimum code necessary to solve the problem
+- Avoid over-engineering and premature optimization
+- Question every line: "Is this essential?"
+- Prefer simple solutions over complex ones
+- Remove unused code, imports, and dependencies
+- Keep functions small and focused (ideally < 20 lines)
+- Avoid unnecessary abstractions unless complexity demands it
+
+---
+
+## Tech Stack
+
+| Layer | Tool | Purpose |
+|-------|------|----------|
+| **Frontend** | Next.js + Tailwind + Shadcn | Minimal, responsive chat UI |
+| **Backend** | Supabase | Auth, DB, file storage |
+| **AI Engine** | Groq API | Instant text response generation |
+| **Voice** | ElevenLabs API | Speech-to-Text + Text-to-Speech |
+| **Personality Data** | Exa.ai | Personality data scraping from social posts |
+
+---
+
+## Documentation Rules
+
+Before using any API or library:
+- Always confirm you’re using the **latest stable version**.  
+- Check endpoints against official docs:
+  - [ElevenLabs API Docs](https://api.elevenlabs.io/docs)
+  - [Supabase Docs](https://supabase.com/docs)
+  - [Exa.ai Docs](https://exa.ai/docs)
+  - [Groq API Docs](https://groq.com/docs)
+- Read changelogs for recent updates or breaking changes.
+
+---
+
+## File & Module Organization
+/frontend/
+├── components/
+├── pages/
+└── styles/
+
+/backend/
+├── supabase/
+├── routes/
+└── utils/
+
+/integrations/
+├── elevenlabs.js
+├── groq.js
+├── exa.js
+└── supabase.js
+
+
+**Module responsibilities:**
+- `voiceCapture`: ElevenLabs STT  
+- `voicePlayback`: ElevenLabs TTS  
+- `chatEngine`: Groq API integration  
+- `memoryStore`: Supabase chat storage  
+- `personalityFetch`: Exa.ai scraping  
+- `frontendChat`: React-based chat interface  
+
+---
+
+## Code Style
+
+- Use **async/await** everywhere.  
+- Keep code small, readable, and documented.  
+- No hardcoded URLs, API keys, or secrets.  
+- Store all environment variables in `.env.local`.  
+- Log with context (`console.table` or structured JSON).  
+- Add rationale comments for **why** decisions were made.  
+- Run linting (`ruff` + `prettier`) before committing.
+
+---
+
+## Workflow & Deployment
+
+- Use Supabase Edge Functions or lightweight Node routes.  
+- Commit only working builds.  
+- Tag pushes as `demo-{feature}` for traceability.  
+- Run lint, type, and API tests before commit.  
+- Use live reload in Cursor for faster feedback.  
+
+---
+
+## Anti-Patterns
+
+- ❌ Don’t over-engineer — keep it hackathon-simple.  
+- ❌ Don’t skip rationale comments.  
+- ❌ Don’t leave debug logs in production commits.  
+- ✅ Do document all API interactions with examples.  
+- ✅ Do test all integrations with real keys before demo day.  
+- ✅ Do modularize each external API integration.
+
+---
+
+## Quick Sanity Checklist
+
+**Before writing code:**
+- [ ] Is this the simplest possible solution?
+- [ ] Have I checked the latest docs?
+- [ ] Do I understand the expected input/output for this module?
+
+**Before committing:**
+- [ ] Lint and type checks pass (`ruff check .`, `mypy`, `prettier`).  
+- [ ] No unused imports or variables.  
+- [ ] No debug print statements remain.  
+- [ ] All environment variables are externalized.  
+- [ ] Functions include rationale comments.  
+- [ ] API versions confirmed against latest docs.  
+- [ ] Demo path verified end-to-end.  
+
+---
+
+## Example Comment Style
+
+```python
+# Using Groq instead of OpenAI here for sub-200ms responses
+# Latency trade-off justified for real-time voice interactions.
