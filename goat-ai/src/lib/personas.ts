@@ -84,10 +84,16 @@ export async function buildPersona(
   name?: string,
   query?: string
 ): Promise<Persona | null> {
-  // Check if persona already exists
-  const existing = await getPersona(slug);
-  if (existing) {
-    return existing;
+  // Sanitize slug to remove hyphens and make it lowercase
+  const sanitizedSlug = slug.replace(/-/g, "").toLowerCase();
+
+  // Check if persona already exists with original or sanitized slug
+  let existing = await getPersona(slug);
+  if (existing) return existing;
+  
+  if (slug !== sanitizedSlug) {
+    existing = await getPersona(sanitizedSlug);
+    if (existing) return existing;
   }
 
   // Check if we're in demo mode
@@ -98,7 +104,7 @@ export async function buildPersona(
   if (demoMode) {
     // Return a default mentor persona for demo
     const defaultPersona = {
-      slug,
+      slug: sanitizedSlug, // Use sanitized slug
       name: name || "Mentor",
       style_bullets: [
         "Direct and practical advice",
@@ -116,14 +122,14 @@ export async function buildPersona(
 
   try {
     // Call the persona building function
-    const personaData = await buildPersonaFromExa(slug, name, query || slug);
+    const personaData = await buildPersonaFromExa(sanitizedSlug, name, query || slug); // Use sanitized slug
     return await createPersona(personaData);
   } catch (error) {
     console.error("Error building persona:", error);
 
     // Fallback to default mentor persona
     const defaultPersona = {
-      slug,
+      slug: sanitizedSlug, // Use sanitized slug
       name: name || "Mentor",
       style_bullets: [
         "Direct and practical advice",

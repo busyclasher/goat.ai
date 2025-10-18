@@ -36,7 +36,7 @@ export function Composer({
 
     // Check for persona switch - detect @mention anywhere in message
     // Supports hyphens in persona slugs (e.g., @warren-buffett)
-    const personaMatch = message.match(/@([\w-]+)(?:\s+(.*))?/);
+    const personaMatch = message.match(/@([\w]+)(?:\s+(.*))?/); // Disallow hyphens
     if (personaMatch) {
       const [, slug, remainingMessage] = personaMatch;
       
@@ -120,10 +120,10 @@ export function Composer({
             value={message}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder="@ to switch persona, or type a message..."
-            className="w-full h-12 p-3 bg-gray-100 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all text-gray-900"
+            placeholder="Type a message or @warrenbuffett to switch... (Shift+Enter for new line)"
+            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             rows={1}
-            disabled={isSending || disabled}
+            disabled={disabled || isSending}
           />
         </div>
         
