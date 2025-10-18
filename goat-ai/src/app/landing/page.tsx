@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Sparkles, MessageSquare, Zap } from "lucide-react";
+import { MessageSquare, Sparkles, Plus, Zap } from "lucide-react";
+import CreatePersonaModal from "@/components/CreatePersonaModal";
 import { listPersonas } from "@/lib/personas";
 import type { Persona } from "@/lib/supabase";
 
@@ -11,7 +12,7 @@ const suggestedQuestions = [
   "How do I get my first 1,000 customers?",
   "What's your best advice for entrepreneurs?",
   "How do I get better at strategy?",
-  "What should I focus on in my 20s?"
+  "What should I focus on in my 20s?",
 ];
 
 // Helper function to get initials from a name
@@ -28,17 +29,20 @@ export default function LandingPage() {
   const router = useRouter();
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    async function fetchPersonas() {
-      const fetchedPersonas = await listPersonas();
-      setPersonas(fetchedPersonas);
-      if (fetchedPersonas.length > 0) {
-        setSelectedPersona(fetchedPersonas[0]);
-      }
-    }
     fetchPersonas();
   }, []);
+
+  const fetchPersonas = async () => {
+    const fetchedPersonas = await listPersonas();
+    setPersonas(fetchedPersonas);
+    if (fetchedPersonas.length > 0 && !selectedPersona) {
+      setSelectedPersona(fetchedPersonas[0]);
+    }
+  };
 
   const handleStartChat = (slug: string, message?: string) => {
     const params = new URLSearchParams();
@@ -47,6 +51,18 @@ export default function LandingPage() {
       params.set("message", message);
     }
     router.push(`/chat?${params.toString()}`);
+  };
+
+  const handlePersonaCreated = (newPersona: Persona) => {
+    // Refresh personas list
+    fetchPersonas();
+
+    // Show success message
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+
+    // Select the new persona
+    setSelectedPersona(newPersona);
   };
 
   if (personas.length === 0) {
@@ -71,7 +87,16 @@ export default function LandingPage() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-12">
-        
+        {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-green-500" />
+            <p className="text-green-700 font-medium">
+              New persona created successfully!
+            </p>
+          </div>
+        )}
+
         {/* Featured Persona */}
         {selectedPersona && (
           <div className="text-center mb-12">
@@ -133,6 +158,23 @@ export default function LandingPage() {
             Choose Your AI Mentor
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Create New Persona Card */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="p-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+            >
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <Plus className="w-8 h-8" />
+              </div>
+              <h4 className="font-semibold text-gray-900 text-center mb-1">
+                Create Persona
+              </h4>
+              <p className="text-xs text-gray-500 text-center">
+                Add custom AI mentor
+              </p>
+            </button>
+
+            {/* Existing Personas */}
             {personas.map((persona) => (
               <button
                 key={persona.slug}
@@ -167,6 +209,20 @@ export default function LandingPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Create Persona Modal */}
+        <CreatePersonaModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={handlePersonaCreated}
+        />
+
+        {/* Footer Note */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-500">
+            Powered by Groq AI • Voice by ElevenLabs
+          </p>
         </div>
       </main>
 
