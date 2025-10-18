@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Sparkles } from "lucide-react";
+import { MessageSquare, Sparkles, Plus } from "lucide-react";
+import CreatePersonaModal from "@/components/CreatePersonaModal";
 
-const personas = [
+const defaultPersonas = [
   {
-    slug: "sherryjiang",
+    slug: "sherry-jiang",
     name: "Sherry Jiang",
     title: "Startup Founder & AI Enthusiast",
     avatar: "S",
     color: "bg-pink-500",
-    description: "Real advice from a founder building in public"
+    description: "Real advice from a founder building in public",
   },
   {
     slug: "warrenbuffett",
@@ -19,7 +20,7 @@ const personas = [
     title: "Investment Wisdom & Long-term Thinking",
     avatar: "W",
     color: "bg-blue-500",
-    description: "Learn about value investing and business fundamentals"
+    description: "Learn about value investing and business fundamentals",
   },
   {
     slug: "elonmusk",
@@ -27,7 +28,7 @@ const personas = [
     title: "Innovation & Bold Vision for the Future",
     avatar: "E",
     color: "bg-purple-500",
-    description: "Discuss technology, sustainability, and ambitious goals"
+    description: "Discuss technology, sustainability, and ambitious goals",
   },
   {
     slug: "stevejobs",
@@ -35,7 +36,7 @@ const personas = [
     title: "Design Excellence & User Experience",
     avatar: "J",
     color: "bg-gray-700",
-    description: "Explore product design and creative thinking"
+    description: "Explore product design and creative thinking",
   },
   {
     slug: "naval",
@@ -43,7 +44,7 @@ const personas = [
     title: "Wealth Creation & Philosophy",
     avatar: "N",
     color: "bg-indigo-500",
-    description: "Insights on building wealth and finding happiness"
+    description: "Insights on building wealth and finding happiness",
   },
   {
     slug: "raydalio",
@@ -51,7 +52,7 @@ const personas = [
     title: "Principles-based Thinking",
     avatar: "R",
     color: "bg-green-600",
-    description: "Learn about systems, patterns, and decision-making"
+    description: "Learn about systems, patterns, and decision-making",
   },
   {
     slug: "mentor",
@@ -59,23 +60,96 @@ const personas = [
     title: "General Practical Advice",
     avatar: "M",
     color: "bg-orange-500",
-    description: "Get actionable guidance on various topics"
-  }
+    description: "Get actionable guidance on various topics",
+  },
 ];
 
 const suggestedQuestions = [
   "How do I get my first 1,000 customers?",
   "What's your best advice for entrepreneurs?",
   "How do I get better at strategy?",
-  "What should I focus on in my 20s?"
+  "What should I focus on in my 20s?",
 ];
 
 export default function LandingPage() {
   const router = useRouter();
-  const [selectedPersona, setSelectedPersona] = useState(personas[0]);
+  const [personas, setPersonas] = useState(defaultPersonas);
+  const [selectedPersona, setSelectedPersona] = useState(defaultPersonas[0]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Fetch personas from database on mount
+  useEffect(() => {
+    fetchPersonas();
+  }, []);
+
+  const fetchPersonas = async () => {
+    try {
+      const response = await fetch("/api/personas");
+      const data = await response.json();
+
+      if (data.success && data.personas.length > 0) {
+        // Map database personas to display format
+        const dbPersonas = data.personas.map((p: any, index: number) => ({
+          slug: p.slug,
+          name: p.name,
+          title: p.style_bullets?.[0] || "AI Persona",
+          avatar: p.name.charAt(0).toUpperCase(),
+          color: getColorForIndex(index),
+          description:
+            p.system_prompt?.substring(0, 60) + "..." ||
+            "Chat with this persona",
+        }));
+        setPersonas(dbPersonas);
+      }
+    } catch (error) {
+      console.error("Error fetching personas:", error);
+      // Keep default personas on error
+    }
+  };
+
+  const getColorForIndex = (index: number) => {
+    const colors = [
+      "bg-pink-500",
+      "bg-blue-500",
+      "bg-purple-500",
+      "bg-gray-700",
+      "bg-indigo-500",
+      "bg-green-600",
+      "bg-orange-500",
+      "bg-red-500",
+      "bg-teal-500",
+      "bg-yellow-500",
+      "bg-cyan-500",
+      "bg-fuchsia-500",
+    ];
+    return colors[index % colors.length];
+  };
 
   const handleStartChat = (slug: string) => {
     router.push(`/chat?persona=${slug}`);
+  };
+
+  const handlePersonaCreated = (newPersona: any) => {
+    // Refresh personas list
+    fetchPersonas();
+
+    // Show success message
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+
+    // Select the new persona
+    const displayPersona = {
+      slug: newPersona.slug,
+      name: newPersona.name,
+      title: newPersona.style_bullets?.[0] || "AI Persona",
+      avatar: newPersona.name.charAt(0).toUpperCase(),
+      color: "bg-gradient-to-br from-blue-500 to-purple-600",
+      description:
+        newPersona.system_prompt?.substring(0, 60) + "..." ||
+        "Chat with this persona",
+    };
+    setSelectedPersona(displayPersona);
   };
 
   return (
@@ -93,6 +167,15 @@ export default function LandingPage() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-12">
+        {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-green-500" />
+            <p className="text-green-700 font-medium">
+              New persona created successfully!
+            </p>
+          </div>
+        )}
         {/* Featured Persona */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-5xl font-bold mb-6 shadow-xl">
@@ -103,7 +186,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-xl text-gray-600 mb-4">{selectedPersona.title}</p>
           <p className="text-gray-500 mb-8">{selectedPersona.description}</p>
-          
+
           {/* Action Buttons */}
           <div className="flex items-center justify-center gap-4">
             <button
@@ -141,6 +224,23 @@ export default function LandingPage() {
             Choose Your AI Mentor
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Create New Persona Card */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="p-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+            >
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <Plus className="w-8 h-8" />
+              </div>
+              <h4 className="font-semibold text-gray-900 text-center mb-1">
+                Create Persona
+              </h4>
+              <p className="text-xs text-gray-500 text-center">
+                Add custom AI mentor
+              </p>
+            </button>
+
+            {/* Existing Personas */}
             {personas.map((persona) => (
               <button
                 key={persona.slug}
@@ -166,6 +266,13 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
+
+        {/* Create Persona Modal */}
+        <CreatePersonaModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={handlePersonaCreated}
+        />
 
         {/* Footer Note */}
         <div className="mt-12 text-center">

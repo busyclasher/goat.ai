@@ -140,11 +140,17 @@ export async function buildPersona(
   }
 }
 
-async function buildPersonaFromExa(
+export async function buildPersonaFromExa(
   slug: string,
   name?: string,
   query?: string
-): Promise<Omit<Persona, "id" | "created_at">> {
+): Promise<
+  Omit<Persona, "id" | "created_at"> & {
+    gender?: string;
+    voiceDescription?: string;
+    sampleText?: string;
+  }
+> {
   const exaApiKey = process.env.EXA_API_KEY;
   const groqApiKey = process.env.GROQ_API_KEY;
 
@@ -239,12 +245,16 @@ async function buildPersonaFromExa(
    - Topics they avoid or wouldn't discuss
    - Types of advice they don't give
 
+6. GENDER IDENTIFICATION:
+   - Based on the person's name and content, determine their gender: "male", "female", or "other"
+
 Based on this analysis, generate:
 - styleBullets: 5-7 specific traits that capture HOW they communicate
 - taboo: 3-5 specific topics/approaches to avoid
-- systemPrompt: A detailed prompt (≤400 tokens) that naturally integrates these patterns. Make it specific, actionable, and authentic - not generic. Include concrete instructions about tone, pacing, and response style. Reference their real expertise areas.
+- systemPrompt: A detailed prompt (≤400 tokens) that MUST start with "You are [Full Name]". The prompt should instruct the AI to embody and respond AS this person in first person, NOT to talk TO them. Make it specific, actionable, and authentic - not generic. Include concrete instructions about their communication style, tone, pacing, and response patterns. Reference their real expertise areas. Example: "You are Jeff Bezos, founder of Amazon and Blue Origin. You speak with..." NOT "You are talking to Jeff Bezos..."
+- gender: "male", "female", or "other"
 
-Format as JSON with keys: styleBullets, taboo, systemPrompt`,
+Format as JSON with keys: styleBullets, taboo, systemPrompt, gender`,
             },
             {
               role: "user",
@@ -277,6 +287,7 @@ Format as JSON with keys: styleBullets, taboo, systemPrompt`,
           snippet: result.snippet || "",
         })
       ),
+      gender: personaData.gender || "other",
     };
   } catch (error) {
     console.error("Error building persona from Exa:", error);
