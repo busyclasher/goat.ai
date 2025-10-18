@@ -207,7 +207,7 @@ function ChatPageContent() {
   };
 
   const generateAIResponse = async (userMessage: string, persona: Persona) => {
-    const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
     
     if (demoMode) {
       // Demo mode - return canned response
@@ -253,9 +253,8 @@ function ChatPageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
-          systemPrompt: persona.system_prompt,
-          conversationHistory: conversation?.messages.slice(-10) || []
+          conversationId: conversation?.id,
+          text: userMessage,
         })
       });
 
