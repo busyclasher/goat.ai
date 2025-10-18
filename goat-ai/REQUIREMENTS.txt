@@ -1,4 +1,4 @@
-# Goat AI - Requirements & Setup Guide
+# GOAT.ai - Requirements & Setup Guide
 
 ## System Requirements
 

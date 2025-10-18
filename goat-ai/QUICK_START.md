@@ -1,4 +1,4 @@
-# Quick Start Guide - Goat AI
+# Quick Start Guide - GOAT.ai
 
 ## 🚀 Get Up and Running in 5 Minutes
 

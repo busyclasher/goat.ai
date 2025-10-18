@@ -1,4 +1,4 @@
-# Goat AI - Digital Minds
+# GOAT.ai - Digital Minds
 
 A Next.js application that creates AI-powered digital minds using Supabase, ElevenLabs, and Groq. Chat with personalized AI personas that can speak and listen.
 

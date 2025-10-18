@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Goat AI Demo', () => {
+test.describe('GOAT.ai Demo', () => {
   test.beforeEach(async ({ page }) => {
     // Set demo mode
     await page.addInitScript(() => {

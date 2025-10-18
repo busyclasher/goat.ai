@@ -1,4 +1,4 @@
-# Goat AI - Project Summary
+# GOAT.ai - Project Summary
 
 ## ✅ Completed Features
 

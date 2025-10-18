@@ -16,7 +16,7 @@ export default function HomePage() {
     <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="text-center">
         <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-        <p className="text-gray-600">Loading Goat AI...</p>
+        <p className="text-gray-600">Loading GOAT.ai...</p>
       </div>
     </div>
   );
