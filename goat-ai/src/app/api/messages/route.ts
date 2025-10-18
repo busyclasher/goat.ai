@@ -25,7 +25,11 @@ export async function POST(req: Request) {
     }
 
     // 1. Insert the new message
-    const { error: messageError } = await supabase.from("messages").insert(messageToInsert);
+    const { data: newMessage, error: messageError } = await supabase
+      .from("messages")
+      .insert(messageToInsert)
+      .select(`*, persona:personas(*)`)
+      .single();
 
     if (messageError) {
       console.error("Error inserting message:", messageError);
@@ -46,7 +50,7 @@ export async function POST(req: Request) {
       console.warn("Could not update conversation timestamp:", conversationError);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(newMessage);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json({ error: errorMessage }, { status: 500 });

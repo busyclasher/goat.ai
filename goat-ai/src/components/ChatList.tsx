@@ -25,9 +25,11 @@ interface Message {
 interface ChatListProps {
   messages: Message[];
   className?: string;
+  autoPlayMessageId?: string | null;
+  onAutoPlayComplete: () => void;
 }
 
-export function ChatList({ messages, className }: ChatListProps) {
+export function ChatList({ messages, className, autoPlayMessageId, onAutoPlayComplete }: ChatListProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const handleCopy = (content: string, messageId: string) => {
@@ -97,6 +99,8 @@ export function ChatList({ messages, className }: ChatListProps) {
                     <div className="flex-shrink-0">
                       <AudioPlayer 
                         audioUrl={message.audio_url} 
+                        autoPlay={message.id === autoPlayMessageId}
+                        onAutoPlayComplete={onAutoPlayComplete}
                       />
                     </div>
                   )}
