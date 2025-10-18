@@ -40,9 +40,13 @@ export async function getConversation(conversationId: string): Promise<(Conversa
   }
 }
 
-export async function createConversation(personaId: string, userId?: string, title?: string): Promise<Conversation | null> {
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
-  
+export async function createConversation(
+  personaId: string,
+  userId?: string,
+  title?: string,
+): Promise<Conversation | null> {
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
   // Demo mode: create in memory
   if (demoMode) {
     const newConversation: Conversation & { messages: Message[] } = {
@@ -52,29 +56,33 @@ export async function createConversation(personaId: string, userId?: string, tit
       title,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      messages: []
+      messages: [],
+    };
+    demoConversations.set(newConversation.id, newConversation);
+    return newConversation;
+  }
+
+  try {
+    const response = await fetch("/api/conversations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ personaId, userId, title }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error creating conversation:", errorData.error);
+      return null;
     }
-    demoConversations.set(newConversation.id, newConversation)
-    return newConversation
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Exception when trying to create conversation:", error);
+    return null;
   }
-
-  // Real mode: use Supabase
-  const { data, error } = await supabase
-    .from('conversations')
-    .insert([{
-      persona_id: personaId,
-      user_id: userId,
-      title
-    }])
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error creating conversation:', error)
-    return null
-  }
-
-  return data
 }
 
 export async function sendMessage(conversationId: string, content: string, audioUrl?: string): Promise<boolean> {
@@ -98,32 +106,20 @@ export async function sendMessage(conversationId: string, content: string, audio
     return true
   }
 
-  // Real mode: use Supabase
-  const { error } = await supabase
-    .from('messages')
-    .insert([{
-      conversation_id: conversationId,
-      role: 'user',
-      content,
-      audio_url: audioUrl
-    }])
+  try {
+    const response = await fetch('/api/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ conversationId, role: 'user', content, audioUrl }),
+    });
 
-  if (error) {
-    console.error('Error sending message:', error)
-    return false
+    return response.ok;
+  } catch (error) {
+    console.error("Exception when sending message:", error);
+    return false;
   }
-
-  // Update conversation timestamp
-  const { error: updateError } = await supabase
-    .from('conversations')
-    .update({ updated_at: new Date().toISOString() })
-    .eq('id', conversationId)
-
-  if (updateError) {
-    console.error('Error updating conversation:', updateError)
-  }
-
-  return true
 }
 
 export async function addAssistantMessage(conversationId: string, content: string, audioUrl?: string): Promise<boolean> {
@@ -146,20 +142,18 @@ export async function addAssistantMessage(conversationId: string, content: strin
     return true
   }
 
-  // Real mode: use Supabase
-  const { error } = await supabase
-    .from('messages')
-    .insert([{
-      conversation_id: conversationId,
-      role: 'assistant',
-      content,
-      audio_url: audioUrl
-    }])
+  try {
+    const response = await fetch('/api/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ conversationId, role: 'assistant', content, audioUrl }),
+    });
 
-  if (error) {
-    console.error('Error adding assistant message:', error)
-    return false
+    return response.ok;
+  } catch (error) {
+    console.error("Exception when adding assistant message:", error);
+    return false;
   }
-
-  return true
 }

@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Log the variables to the server console during initialization
+console.log("Supabase URL from env:", supabaseUrl ? "Loaded" : "Missing");
+console.log("Supabase Anon Key from env:", supabaseAnonKey ? "Loaded" : "Missing");
+
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase URL and anonymous key are required.");
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

@@ -1,45 +1,98 @@
-import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { NextResponse } from "next/server";
+import { supabase } from "../../../lib/supabase";
+import { groq } from "../../../lib/groq";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+export async function POST(req: Request) {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    return NextResponse.json({ text: "Demo response" });
+  }
 
-export async function POST(request: NextRequest) {
+  const { conversationId, text } = await req.json();
+
+  if (!conversationId || !text) {
+    return NextResponse.json(
+      { text: "Missing conversationId or text" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { message, systemPrompt, conversationHistory } = await request.json();
-    
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    // 1. Fetch activePersona from Supabase for this conversation.
+    const { data: conversationData, error: conversationError } = await supabase
+      .from("conversations")
+      .select("persona_id")
+      .eq("id", conversationId)
+      .single();
+
+    if (conversationError) throw conversationError;
+
+    if (!conversationData) {
+      return NextResponse.json(
+        { text: "Conversation not found" },
+        { status: 404 }
+      );
     }
 
-    if (!process.env.GROQ_API_KEY) {
-      return NextResponse.json({ error: "Groq API key not configured" }, { status: 500 });
+    const personaId = conversationData.persona_id;
+    const { data: personaData, error: personaError } = await supabase
+      .from("personas")
+      .select("id, system_prompt")
+      .eq("id", personaId)
+      .single();
+
+    if (personaError) throw personaError;
+
+    if (!personaData) {
+      return NextResponse.json(
+        { text: "Persona not found for this conversation" },
+        { status: 404 }
+      );
     }
 
-    // Build conversation context
-    const messages = [
-      { role: "system", content: systemPrompt || "You are a helpful assistant." },
-      ...conversationHistory.map((msg: any) => ({
-        role: msg.role,
-        content: msg.content
-      })),
-      { role: "user", content: message }
-    ];
+    const activePersona = personaData;
 
-    const chatCompletion = await groq.chat.completions.create({
-      messages: messages as any,
-      model: "llama-3.1-70b-versatile", // Groq's fastest model
-      max_tokens: 500,
-      temperature: 0.7,
-      stream: false,
+    // 2. Use activePersona.system_prompt as LLM system message and compose Groq prompt.
+    const groqResponse = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: activePersona.system_prompt,
+        },
+        {
+          role: "user",
+          content: text,
+        },
+      ],
+      model: "llama-3.1-70b-versatile",
+      temperature: 0.6,
+      max_tokens: 150,
     });
 
-    const text = chatCompletion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+    const assistantText = groqResponse.choices[0].message.content;
 
-    return NextResponse.json({ text });
-  } catch (error) {
-    console.error("Chat API error:", error);
-    return NextResponse.json({ error: "Failed to generate response" }, { status: 500 });
+    // 3. On response, insert new message into messages (SKIPPED FOR TESTING)
+    // const { error: insertError } = await supabase.from("messages").insert({
+    //   role: "assistant",
+    //   persona_id: activePersona.id,
+    //   text: assistantText,
+    //   timestamp: new Date().toISOString(),
+    //   conversation_id: conversationId,
+    // });
+
+    // if (insertError) throw insertError;
+
+    // 4. Return { text }
+    return NextResponse.json({ text: assistantText });
+  } catch (error: any) {
+    console.error("Caught error in /api/chat route:", {
+      message: error.message,
+      stack: error.stack,
+      details: error.details, // PostgREST errors often have details here
+      fullError: JSON.stringify(error, null, 2),
+    });
+    return NextResponse.json(
+      { text: "Let’s circle back to that later." },
+      { status: 500 }
+    );
   }
 }
