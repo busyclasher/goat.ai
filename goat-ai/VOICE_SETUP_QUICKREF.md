@@ -21,12 +21,12 @@
 ### 3️⃣ Update Voice ID (Alternative - Direct Update)
 ```bash
 # Option A: Use helper script
-node scripts/update-voice-id.js sherry-jiang YOUR_VOICE_ID
+node scripts/update-voice-id.js sherryjiang YOUR_VOICE_ID
 
 # Option B: Direct SQL in Supabase
 UPDATE personas 
 SET voice_id = 'YOUR_VOICE_ID' 
-WHERE slug = 'sherry-jiang';
+WHERE slug = 'sherryjiang';
 ```
 
 ---
@@ -78,7 +78,7 @@ Before using a voice:
 **Voice doesn't change?**
 ```sql
 -- Check if voice_id is set
-SELECT slug, name, voice_id FROM personas WHERE slug = 'sherry-jiang';
+SELECT slug, name, voice_id FROM personas WHERE slug = 'sherryjiang';
 ```
 
 **"Voice not found" error?**

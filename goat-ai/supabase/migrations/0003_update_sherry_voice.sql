@@ -4,7 +4,7 @@
 -- First, insert Sherry's persona if it doesn't exist
 INSERT INTO personas (slug, name, style_bullets, taboo, system_prompt, sources, voice_id) 
 VALUES (
-  'sherry-jiang',
+  'sherryjiang',
   'Sherry Jiang',
   '["Resilient", "Insightful", "Candid", "Authentic", "Optimistic"]',
   '["Avoid overly technical jargon", "Don''t give financial advice", "Don''t be overly promotional", "Avoid negativity"]',

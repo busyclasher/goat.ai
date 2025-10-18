@@ -2,10 +2,73 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
 import Image from "next/image";
 import { Sparkles, MessageSquare, Zap } from "lucide-react";
 import { listPersonas } from "@/lib/personas";
 import type { Persona } from "@/lib/supabase";
+=======
+import { MessageSquare, Sparkles } from "lucide-react";
+
+const personas = [
+  {
+    slug: "sherryjiang",
+    name: "Sherry Jiang",
+    title: "Startup Founder & AI Enthusiast",
+    avatar: "S",
+    color: "bg-pink-500",
+    description: "Real advice from a founder building in public"
+  },
+  {
+    slug: "warrenbuffett",
+    name: "Warren Buffett",
+    title: "Investment Wisdom & Long-term Thinking",
+    avatar: "W",
+    color: "bg-blue-500",
+    description: "Learn about value investing and business fundamentals"
+  },
+  {
+    slug: "elonmusk",
+    name: "Elon Musk",
+    title: "Innovation & Bold Vision for the Future",
+    avatar: "E",
+    color: "bg-purple-500",
+    description: "Discuss technology, sustainability, and ambitious goals"
+  },
+  {
+    slug: "stevejobs",
+    name: "Steve Jobs",
+    title: "Design Excellence & User Experience",
+    avatar: "J",
+    color: "bg-gray-700",
+    description: "Explore product design and creative thinking"
+  },
+  {
+    slug: "naval",
+    name: "Naval Ravikant",
+    title: "Wealth Creation & Philosophy",
+    avatar: "N",
+    color: "bg-indigo-500",
+    description: "Insights on building wealth and finding happiness"
+  },
+  {
+    slug: "raydalio",
+    name: "Ray Dalio",
+    title: "Principles-based Thinking",
+    avatar: "R",
+    color: "bg-green-600",
+    description: "Learn about systems, patterns, and decision-making"
+  },
+  {
+    slug: "mentor",
+    name: "Mentor",
+    title: "General Practical Advice",
+    avatar: "M",
+    color: "bg-orange-500",
+    description: "Get actionable guidance on various topics"
+  }
+];
+>>>>>>> 0d425fe5e253cc29dcf36f16806056a075e249c3
 
 const suggestedQuestions = [
   "How do I get my first 1,000 customers?",

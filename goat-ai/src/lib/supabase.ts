@@ -27,6 +27,7 @@ export interface Persona {
     url: string
     snippet: string
   }>
+  avatar_url?: string
   voice_id?: string
   created_at: string
 }
@@ -38,6 +39,7 @@ export interface Conversation {
   title?: string
   created_at: string
   updated_at: string
+  messages?: Message[]
 }
 
 export interface Message {

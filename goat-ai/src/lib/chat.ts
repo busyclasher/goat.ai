@@ -1,4 +1,4 @@
-import { supabase, type Conversation, type Message } from './supabase'
+import { type Conversation, type Message } from './supabase'
 
 // In-memory storage for demo mode
 const demoConversations: Map<string, Conversation & { messages: Message[] }> = new Map()
@@ -17,8 +17,8 @@ export async function getConversation(
     const response = await fetch(`/api/conversations/${conversationId}`);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error fetching conversation:", errorData.error);
+      const errorText = await response.text();
+      console.error("Error fetching conversation:", response.status, errorText);
       return null;
     }
 
@@ -68,7 +68,7 @@ export async function createConversation(
     }
 
     const data = await response.json();
-    return data;
+    return { ...data, messages: [] };
   } catch (error) {
     console.error("Exception when trying to create conversation:", error);
     return null;
@@ -134,6 +134,7 @@ export async function addAssistantMessage(conversationId: string, content: strin
         created_at: new Date().toISOString()
       }
       conversation.messages.push(newMessage)
+      conversation.updated_at = new Date().toISOString()
     }
     return true
   }
@@ -147,7 +148,13 @@ export async function addAssistantMessage(conversationId: string, content: strin
       body: JSON.stringify({ conversationId, role: 'assistant', content, audioUrl, personaId }),
     });
 
-    return response.ok;
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("Failed to add assistant message:", response.status, errorBody);
+        return false;
+    }
+
+    return true; // Simplified from response.ok
   } catch (error) {
     console.error("Exception when adding assistant message:", error);
     return false;

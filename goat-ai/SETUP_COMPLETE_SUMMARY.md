@@ -35,7 +35,7 @@
 
 ### 6. Helper Tools ✅
 - Created `scripts/update-voice-id.js` for easy voice ID updates
-- Usage: `node scripts/update-voice-id.js sherry-jiang YOUR_VOICE_ID`
+- Usage: `node scripts/update-voice-id.js sherryjiang YOUR_VOICE_ID`
 
 ### 7. Documentation ✅
 - Created `docs/VOICE_MAPPING_SETUP.md` - Complete setup guide
@@ -85,14 +85,14 @@ supabase db push
 
 **Method 1 - Helper Script (Recommended):**
 ```bash
-node scripts/update-voice-id.js sherry-jiang YOUR_ACTUAL_VOICE_ID
+node scripts/update-voice-id.js sherryjiang YOUR_ACTUAL_VOICE_ID
 ```
 
 **Method 2 - Direct SQL:**
 ```sql
 UPDATE personas 
 SET voice_id = 'YOUR_ACTUAL_VOICE_ID' 
-WHERE slug = 'sherry-jiang';
+WHERE slug = 'sherryjiang';
 ```
 
 ### Step 4: Test
@@ -164,7 +164,7 @@ npm run dev
 ### Voice doesn't change after update?
 ```sql
 -- Verify voice_id is set
-SELECT slug, name, voice_id FROM personas WHERE slug = 'sherry-jiang';
+SELECT slug, name, voice_id FROM personas WHERE slug = 'sherryjiang';
 ```
 
 ### "Voice not found" error?
@@ -187,7 +187,7 @@ SELECT slug, name, voice_id FROM personas WHERE slug = 'sherry-jiang';
 node scripts/update-voice-id.js
 
 # Update voice ID
-node scripts/update-voice-id.js sherry-jiang YOUR_VOICE_ID
+node scripts/update-voice-id.js sherryjiang YOUR_VOICE_ID
 
 # Test locally
 npm run dev
