@@ -121,7 +121,7 @@ export function Composer({
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message or @warrenbuffett to switch... (Shift+Enter for new line)"
-            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 pr-12 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             rows={1}
             disabled={disabled || isSending}
           />
