@@ -1,29 +1,37 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChatList } from "@/components/ChatList";
 import { Composer } from "@/components/Composer";
 import { Toast } from "@/components/Toast";
+import { 
+  Conversation, 
+  ConversationContent, 
+  ConversationEmptyState, 
+  ConversationScrollButton 
+} from "@/components/ui/conversation";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { getPersona, buildPersona, listPersonas } from "@/lib/personas";
 import { getConversation, createConversation, sendMessage, addAssistantMessage } from "@/lib/chat";
-import type { Persona, Conversation, Message } from "@/lib/supabase";
+import type { Persona, Conversation as ConversationType, Message } from "@/lib/supabase";
 import Link from "next/link";
 
 function ChatPageContent() {
   const searchParams = useSearchParams();
   const personaParam = searchParams.get("persona") || "warrenbuffett";
+  const messageParam = searchParams.get("message");
   
   const [currentPersonaSlug, setCurrentPersonaSlug] = useState(personaParam);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [persona, setPersona] = useState<Persona | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
-  const [conversation, setConversation] = useState<(Conversation & { messages: Message[] }) | null>(null);
+  const [conversation, setConversation] = useState<(ConversationType & { messages: Message[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
+  const hasAutoSentRef = useRef(false);
 
   useEffect(() => {
     const fetchPersonas = async () => {
@@ -186,38 +194,7 @@ function ChatPageContent() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
-    if (!conversationId || !persona) return;
-
-    try {
-      setError(null);
-      const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-      
-      // Send user message (no persona_id for user messages)
-      await sendMessage(conversationId, content);
-
-      // In demo mode, manually update the conversation state
-      if (demoMode) {
-        const updatedConversation = await getConversation(conversationId);
-        setConversation(updatedConversation);
-      }
-
-      // Generate AI response
-      const response = await generateAIResponse(content, persona);
-      await addAssistantMessage(conversationId, response.text, response.audioUrl, persona.id);
-
-      // In demo mode, manually update the conversation state again
-      if (demoMode) {
-        const updatedConversation = await getConversation(conversationId);
-        setConversation(updatedConversation);
-      }
-    } catch (err) {
-      console.error("Error sending message:", err);
-      setToast({ message: "Failed to send message", type: "error" });
-    }
-  };
-
-  const generateAIResponse = async (userMessage: string, persona: Persona) => {
+  const generateAIResponse = useCallback(async (userMessage: string, personaData: Persona, convId: string) => {
     const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
     
     if (demoMode) {
@@ -234,13 +211,13 @@ function ChatPageContent() {
       
       // Generate audio for demo
       try {
-        console.log('Generating TTS with voice_id:', persona.voice_id);
+        console.log('Generating TTS with voice_id:', personaData.voice_id);
         const ttsResponse = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             text: randomResponse,
-            voiceId: persona.voice_id
+            voiceId: personaData.voice_id
           })
         });
         
@@ -264,7 +241,7 @@ function ChatPageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversationId: conversation?.id,
+          conversationId: convId,
           text: userMessage,
         })
       });
@@ -279,13 +256,13 @@ function ChatPageContent() {
       
       // Generate audio
       try {
-        console.log('Generating TTS for real mode with voice_id:', persona.voice_id);
+        console.log('Generating TTS for real mode with voice_id:', personaData.voice_id);
         const ttsResponse = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             text,
-            voiceId: persona.voice_id
+            voiceId: personaData.voice_id
           })
         });
         
@@ -305,7 +282,52 @@ function ChatPageContent() {
       console.error('Error generating AI response:', error);
       return { text: "I'm sorry, I'm having trouble processing that right now." };
     }
-  };
+  }, []);
+
+  const handleSendMessage = useCallback(async (content: string, convId?: string, personaOverride?: Persona) => {
+    const activeConversationId = convId || conversationId;
+    const activePersona = personaOverride || persona;
+    if (!activeConversationId || !activePersona) return;
+
+    try {
+      setError(null);
+      const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+      
+      // Send user message (no persona_id for user messages)
+      await sendMessage(activeConversationId, content);
+
+      // In demo mode, manually update the conversation state
+      if (demoMode) {
+        const updatedConversation = await getConversation(activeConversationId);
+        setConversation(updatedConversation);
+      }
+
+      // Generate AI response
+      const response = await generateAIResponse(content, activePersona, activeConversationId);
+      await addAssistantMessage(activeConversationId, response.text, response.audioUrl, activePersona.id);
+
+      // In demo mode, manually update the conversation state again
+      if (demoMode) {
+        const updatedConversation = await getConversation(activeConversationId);
+        setConversation(updatedConversation);
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setToast({ message: "Failed to send message", type: "error" });
+    }
+  }, [conversationId, persona, generateAIResponse]);
+
+  // Auto-send initial message from URL parameter
+  useEffect(() => {
+    const autoSendMessage = async () => {
+      if (conversationId && persona && messageParam && !hasAutoSentRef.current) {
+        hasAutoSentRef.current = true;
+        await handleSendMessage(messageParam);
+      }
+    };
+
+    autoSendMessage();
+  }, [conversationId, persona, messageParam, handleSendMessage]);
 
   if (isLoading) {
     return (
@@ -377,10 +399,20 @@ function ChatPageContent() {
       </header>
 
       {/* Chat */}
-      <main className="flex-1 overflow-y-auto">
-        <ChatList 
-          messages={conversation?.messages || []} 
-        />
+      <main className="flex-1 overflow-hidden">
+        <Conversation>
+          <ConversationContent>
+            {!conversation?.messages || conversation.messages.length === 0 ? (
+              <ConversationEmptyState 
+                title="No messages yet"
+                description="Start a conversation below"
+              />
+            ) : (
+              <ChatList messages={conversation.messages} />
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
       </main>
 
       {/* Composer */}
@@ -406,13 +438,27 @@ function ChatPageContent() {
 }
 
 export default function ChatPage() {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    }>
-      <ChatPageContent />
-    </Suspense>
+    <>
+      {isClient ? (
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-screen">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        }>
+          <ChatPageContent />
+        </Suspense>
+      ) : (
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </div>
+      )}
+    </>
   );
 }
