@@ -5,24 +5,30 @@ import { Send, Loader2 } from "lucide-react";
 import { MicButton } from "./MicButton";
 import { Toast } from "./Toast";
 import { cn } from "@/lib/utils";
+import { PersonaSuggestions } from "./PersonaSuggestions";
+import type { Persona } from "@/lib/supabase";
 
 interface ComposerProps {
   onSend: (message: string) => void;
   onPersonaSwitch: (slug: string, remainingMessage?: string) => Promise<void>;
   disabled?: boolean;
   className?: string;
+  personas: Persona[];
 }
 
 export function Composer({ 
   onSend, 
   onPersonaSwitch, 
   disabled = false,
-  className 
+  className,
+  personas
 }: ComposerProps) {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [suggestions, setSuggestions] = useState<Persona[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +37,7 @@ export function Composer({
     // Check for persona switch - detect @mention anywhere in message
     const personaMatch = message.match(/@(\w+)(?:\s+(.*))?/);
     if (personaMatch) {
-      const [fullMatch, slug, remainingMessage] = personaMatch;
+      const [, slug, remainingMessage] = personaMatch;
       
       setIsSending(true);
       try {
@@ -54,6 +60,30 @@ export function Composer({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+
+    const mentionMatch = value.match(/@(\w*)$/);
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      const filteredPersonas = personas.filter(p =>
+        p.slug.toLowerCase().startsWith(query)
+      );
+      setSuggestions(filteredPersonas);
+      setShowSuggestions(filteredPersonas.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (slug: string) => {
+    const updatedMessage = message.replace(/@(\w*)$/, `@${slug} `);
+    setMessage(updatedMessage);
+    setShowSuggestions(false);
+    textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -84,10 +114,16 @@ export function Composer({
     <>
       <form onSubmit={handleSubmit} className={cn("flex gap-2 p-4 border-t", className)}>
         <div className="flex-1 relative">
+          {showSuggestions && (
+            <PersonaSuggestions
+              suggestions={suggestions}
+              onSelect={handleSuggestionClick}
+            />
+          )}
           <textarea
             ref={textareaRef}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message or @persona to switch... (Shift+Enter for new line)"
             disabled={disabled || isSending}

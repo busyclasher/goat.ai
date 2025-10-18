@@ -19,7 +19,7 @@ export async function getPersona(slug: string): Promise<Persona | null> {
     .single();
 
   if (error) {
-    console.error("Error fetching persona:", error);
+    console.error("Error fetching persona:", JSON.stringify(error, null, 2));
     return null;
   }
 
@@ -72,7 +72,7 @@ export async function createPersona(
     .single();
 
   if (error) {
-    console.error("Error creating persona:", error);
+    console.error("Error creating persona:", JSON.stringify(error, null, 2));
     return null;
   }
 

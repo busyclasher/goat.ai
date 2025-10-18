@@ -12,14 +12,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Insert the new message
-    const { error: messageError } = await supabase.from("messages").insert({
+    const messageToInsert: any = {
       conversation_id: conversationId,
       role,
-      content: content,
-      text: content, // Write to both `text` and `content` to satisfy legacy schema
+      content,
+      text: content, // Ensure text is populated for legacy schema
       audio_url: audioUrl,
-    });
+    };
+
+    if (role === 'assistant' && personaId) {
+      messageToInsert.persona_id = personaId;
+    }
+
+    // 1. Insert the new message
+    const { error: messageError } = await supabase.from("messages").insert(messageToInsert);
 
     if (messageError) {
       console.error("Error inserting message:", messageError);

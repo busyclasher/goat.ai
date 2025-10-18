@@ -2,11 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { ChatList } from "@/components/ChatList";
 import { Composer } from "@/components/Composer";
 import { Toast } from "@/components/Toast";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { getPersona, buildPersona } from "@/lib/personas";
+import { getPersona, buildPersona, listPersonas } from "@/lib/personas";
 import { getConversation, createConversation, sendMessage, addAssistantMessage } from "@/lib/chat";
 import type { Persona, Conversation, Message } from "@/lib/supabase";
 import Link from "next/link";
@@ -18,10 +19,19 @@ function ChatPageContent() {
   const [currentPersonaSlug, setCurrentPersonaSlug] = useState(personaParam);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [persona, setPersona] = useState<Persona | null>(null);
+  const [personas, setPersonas] = useState<Persona[]>([]);
   const [conversation, setConversation] = useState<(Conversation & { messages: Message[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
+
+  useEffect(() => {
+    const fetchPersonas = async () => {
+      const personaList = await listPersonas();
+      setPersonas(personaList);
+    };
+    fetchPersonas();
+  }, []);
 
   // Load persona when slug changes
   useEffect(() => {
@@ -51,11 +61,12 @@ function ChatPageContent() {
   // Create conversation when persona is ready
   useEffect(() => {
     const createNewConversation = async () => {
-      if (persona && !conversationId) {
+      if (persona) { // simplified condition
         try {
           const newConversation = await createConversation(persona.id);
           if (newConversation) {
             setConversationId(newConversation.id);
+            setConversation(newConversation); // Also set the conversation object
           }
         } catch (err) {
           console.error("Error creating conversation:", err);
@@ -65,7 +76,7 @@ function ChatPageContent() {
     };
 
     createNewConversation();
-  }, [persona, conversationId]);
+  }, [persona]); // Depend on persona
 
   // Load conversation and set up real-time subscription
   useEffect(() => {
@@ -345,13 +356,21 @@ function ChatPageContent() {
           <Link href="/landing" className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-            {persona.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="font-semibold text-gray-900">{persona.name}</h1>
-            <p className="text-sm text-gray-500">@{persona.slug}</p>
-          </div>
+          {persona && (
+            <>
+              {persona.avatar_url ? (
+                <Image src={persona.avatar_url} alt={persona.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                  {persona.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <h1 className="font-semibold text-gray-900">{persona.name}</h1>
+                <p className="text-sm text-gray-500">@{persona.slug}</p>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -368,6 +387,7 @@ function ChatPageContent() {
           onSend={handleSendMessage}
           onPersonaSwitch={handlePersonaSwitch}
           disabled={!conversationId}
+          personas={personas}
         />
       </footer>
 

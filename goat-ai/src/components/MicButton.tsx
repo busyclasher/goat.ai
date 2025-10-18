@@ -22,6 +22,35 @@ export function MicButton({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  const processAudio = useCallback(async (audioBlob: Blob) => {
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const response = await fetch('/api/stt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`STT API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.text && data.text.trim()) {
+        onTranscription(data.text.trim());
+      } else {
+        onError("No speech detected. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error processing audio:", error);
+      onError("Failed to process audio. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [onTranscription, onError]);
+
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -50,7 +79,7 @@ export function MicButton({
       console.error("Error starting recording:", error);
       onError("Failed to access microphone. Please check permissions.");
     }
-  }, [onError]);
+  }, [onError, processAudio]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -58,35 +87,6 @@ export function MicButton({
       setIsRecording(false);
     }
   }, [isRecording]);
-
-  const processAudio = async (audioBlob: Blob) => {
-    setIsProcessing(true);
-    try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      const response = await fetch('/api/stt', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`STT API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.text && data.text.trim()) {
-        onTranscription(data.text.trim());
-      } else {
-        onError("No speech detected. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error processing audio:", error);
-      onError("Failed to process audio. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleClick = () => {
     if (isRecording) {

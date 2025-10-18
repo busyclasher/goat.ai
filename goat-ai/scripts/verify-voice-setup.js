@@ -55,7 +55,7 @@ async function verifySetup() {
   });
 
   // Check specifically for Sherry
-  const sherry = personas.find(p => p.slug === 'sherry-jiang');
+  const sherry = personas.find(p => p.slug === 'sherryjiang');
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎯 SHERRY JIANG STATUS:\n');
@@ -75,7 +75,7 @@ async function verifySetup() {
     } else {
       console.log('✅ Persona exists');
       console.log('⚠️  Voice ID NOT configured');
-      console.log('\n💡 To fix: node scripts/update-voice-id.js sherry-jiang Qv0aP47SJsL43Pn6x7k9');
+      console.log('\n💡 To fix: node scripts/update-voice-id.js sherryjiang Qv0aP47SJsL43Pn6x7k9');
     }
   } else {
     console.log('❌ Sherry persona NOT found');

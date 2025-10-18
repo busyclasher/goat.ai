@@ -6,7 +6,7 @@ import { MessageSquare, Sparkles } from "lucide-react";
 
 const personas = [
   {
-    slug: "sherry-jiang",
+    slug: "sherryjiang",
     name: "Sherry Jiang",
     title: "Startup Founder & AI Enthusiast",
     avatar: "S",
