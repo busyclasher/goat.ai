@@ -83,27 +83,24 @@ export function Composer({
   return (
     <>
       <form onSubmit={handleSubmit} className={cn("flex gap-2 p-4 border-t", className)}>
-        <div className="flex-1 relative">
+        <div className="flex-1">
           <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message or @persona to switch... (Shift+Enter for new line)"
-            disabled={disabled || isSending}
-            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="@ to switch persona, or type a message..."
+            className="w-full h-12 p-3 bg-gray-100 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all text-gray-900"
             rows={1}
-            style={{ minHeight: "40px", maxHeight: "120px" }}
+            disabled={isSending || disabled}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-            <MicButton
-              onTranscription={handleTranscription}
-              onError={handleError}
-              disabled={disabled || isSending}
-              className="w-8 h-8"
-            />
-          </div>
         </div>
+        
+        <MicButton
+          onTranscription={handleTranscription}
+          onError={handleError}
+          disabled={disabled || isSending}
+        />
         
         <button
           type="submit"
