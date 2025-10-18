@@ -187,11 +187,11 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* Existing Personas */}
             {personas.map((persona) => (
-              <button
+              <div
                 key={persona.slug}
                 onClick={() => setSelectedPersona(persona)}
                 onDoubleClick={() => handleStartChat(persona.slug)}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all cursor-pointer ${
                   selectedPersona?.slug === persona.slug
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
@@ -218,7 +218,7 @@ export default function LandingPage() {
                 <p className="text-xs text-gray-500 text-center line-clamp-2">
                   {persona.description || persona.system_prompt}
                 </p>
-              </button>
+              </div>
             ))}
 
             {/* Create New Persona Card */}
@@ -256,7 +256,7 @@ export default function LandingPage() {
 
       {/* Footer Note */}
       <footer className="text-center py-8 text-gray-500 text-sm">
-        <p>&copy; 2024 Goat AI. All rights reserved.</p>
+        <p>&copy; 2025 Goat.AI. All rights reserved.</p>
       </footer>
     </div>
   );

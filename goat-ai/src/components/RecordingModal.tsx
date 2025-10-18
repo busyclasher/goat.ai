@@ -102,7 +102,7 @@ export function RecordingModal({
           <p className="text-white/60 text-sm mb-4">
             {isProcessing 
               ? "Converting speech to text..." 
-              : "Click anywhere or press ESC to stop recording"
+              : "Click anywhere or press ESC to Stop"
             }
           </p>
           <button
@@ -115,7 +115,7 @@ export function RecordingModal({
                 : "bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-500/50"
             )}
           >
-            {isProcessing ? "Processing..." : "Stop Recording"}
+            {isProcessing ? "Processing..." : "Stop"}
           </button>
         </div>
       </div>
