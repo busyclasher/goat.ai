@@ -15,33 +15,63 @@ export async function POST(request: NextRequest) {
     // Try ElevenLabs STT first if available
     if (elevenApiKey) {
       try {
-        const audioBuffer = await audioFile.arrayBuffer();
+        // ElevenLabs expects multipart/form-data with 'audio' field
+        const sttFormData = new FormData();
+        sttFormData.append('audio', audioFile);
+        
         const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
           method: "POST",
           headers: {
             "xi-api-key": elevenApiKey,
           },
-          body: audioBuffer,
+          body: sttFormData,
         });
 
         if (response.ok) {
           const data = await response.json();
           return NextResponse.json({ text: data.text || "" });
+        } else {
+          const errorText = await response.text();
+          console.error("ElevenLabs STT error:", response.status, errorText);
         }
       } catch (error) {
-        console.warn("ElevenLabs STT failed, falling back to Whisper:", error);
+        console.error("ElevenLabs STT failed:", error);
       }
     }
 
-    // Fallback to Groq (Note: Groq doesn't have STT, so we'll return an error)
-    if (!groqApiKey) {
-      return NextResponse.json({ error: "No STT service configured" }, { status: 500 });
+    // Fallback to Groq Whisper API
+    if (groqApiKey) {
+      try {
+        // Groq supports Whisper for STT
+        const whisperFormData = new FormData();
+        whisperFormData.append('file', audioFile);
+        whisperFormData.append('model', 'whisper-large-v3');
+        whisperFormData.append('response_format', 'json');
+        
+        const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqApiKey}`,
+          },
+          body: whisperFormData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return NextResponse.json({ text: data.text || "" });
+        } else {
+          const errorText = await response.text();
+          console.error("Groq Whisper error:", response.status, errorText);
+        }
+      } catch (error) {
+        console.error("Groq Whisper failed:", error);
+      }
     }
 
-    // Groq doesn't provide STT service, so we'll return an error message
+    // If both services failed
     return NextResponse.json({ 
-      error: "Speech-to-text not available. Please use text input instead." 
-    }, { status: 501 });
+      error: "Speech-to-text service unavailable. Please check API keys." 
+    }, { status: 503 });
   } catch (error) {
     console.error("STT error:", error);
     return NextResponse.json({ error: "Failed to transcribe audio" }, { status: 500 });
