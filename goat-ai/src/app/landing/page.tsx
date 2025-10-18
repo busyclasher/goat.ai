@@ -14,6 +14,16 @@ const suggestedQuestions = [
   "What should I focus on in my 20s?"
 ];
 
+// Helper function to get initials from a name
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -53,7 +63,6 @@ export default function LandingPage() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/image.png" alt="Goat AI" width={32} height={32} />
             <h1 className="text-2xl font-bold text-gray-900">Goat AI</h1>
           </div>
           <p className="text-sm text-gray-600">Chat with AI Digital Minds</p>
@@ -66,13 +75,25 @@ export default function LandingPage() {
         {/* Featured Persona */}
         {selectedPersona && (
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-5xl font-bold mb-6 shadow-xl">
-              {selectedPersona.name[0]}
-            </div>
+            {selectedPersona.avatar_url ? (
+              <div className="inline-block w-32 h-32 rounded-full overflow-hidden mb-6 shadow-xl">
+                <Image
+                  src={selectedPersona.avatar_url}
+                  alt={selectedPersona.name}
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-5xl font-bold mb-6 shadow-xl">
+                {getInitials(selectedPersona.name)}
+              </div>
+            )}
             <h2 className="text-4xl font-bold text-gray-900 mb-2">
               {selectedPersona.name}
             </h2>
-            <p className="text-xl text-gray-600 mb-4">{selectedPersona.description || `An AI persona.`}</p>
+            <p className="text-xl text-gray-600 mb-4">{selectedPersona.system_prompt}</p>
             
             {/* Action Buttons */}
             <div className="flex items-center justify-center gap-4">
@@ -122,16 +143,26 @@ export default function LandingPage() {
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
-                <div
-                  className={`w-16 h-16 rounded-full bg-blue-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3`}
-                >
-                  {persona.name[0]}
-                </div>
+                {persona.avatar_url ? (
+                  <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-3">
+                    <Image
+                      src={persona.avatar_url}
+                      alt={persona.name}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-blue-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3">
+                    {getInitials(persona.name)}
+                  </div>
+                )}
                 <h4 className="font-semibold text-gray-900 text-center mb-1">
                   {persona.name}
                 </h4>
-                <p className="text-xs text-gray-500 text-center">
-                  {persona.description || `Chat with ${persona.name}`}
+                <p className="text-xs text-gray-500 text-center line-clamp-2">
+                  {persona.system_prompt}
                 </p>
               </button>
             ))}
