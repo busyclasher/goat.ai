@@ -44,6 +44,7 @@ export function MicButton({
       if (data.text && data.text.trim()) {
         onTranscription(data.text.trim());
       } else {
+        console.warn("STT API returned empty text:", data);
         onError("No speech detected. Please try again.");
       }
     } catch (error) {
@@ -74,6 +75,15 @@ export function MicButton({
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log(`[MicButton] Audio blob created. Size: ${audioBlob.size} bytes.`);
+        
+        if (audioBlob.size < 1000) { // Add a minimum size check (1KB)
+            onError("Recording too short. Please try again.");
+            stream.getTracks().forEach(track => track.stop());
+            setMediaStream(null);
+            return;
+        }
+
         await processAudio(audioBlob);
         stream.getTracks().forEach(track => track.stop());
         setMediaStream(null);

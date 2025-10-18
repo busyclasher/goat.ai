@@ -304,7 +304,29 @@ function ChatPageContent() {
 
       // Generate AI response
       const response = await generateAIResponse(content, activePersona, activeConversationId);
-      await addAssistantMessage(activeConversationId, response.text, response.audioUrl, activePersona.id);
+
+      // Autoplay audio as soon as it's generated
+      if (response.audioUrl) {
+        const audio = new Audio(response.audioUrl);
+        audio.play().catch(err => console.error("Audio playback failed:", err));
+      }
+
+      const newMessage = await addAssistantMessage(activeConversationId, response.text, response.audioUrl, activePersona.id);
+
+      // Optimistically update the conversation state
+      if (newMessage) {
+        setConversation(prev => {
+          if (!prev) return null;
+          // Ensure no duplicates from real-time subscription
+          if (prev.messages.some(msg => msg.id === newMessage.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            messages: [...prev.messages, newMessage]
+          };
+        });
+      }
 
       // In demo mode, manually update the conversation state again
       if (demoMode) {

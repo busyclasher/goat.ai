@@ -115,10 +115,15 @@ export async function sendMessage(conversationId: string, content: string): Prom
   }
 }
 
-export async function addAssistantMessage(conversationId: string, content: string, audioUrl?: string, personaId?: string): Promise<boolean> {
+export async function addAssistantMessage(
+  conversationId: string, 
+  content: string, 
+  audioUrl?: string, 
+  personaId?: string
+): Promise<Message | null> {
   console.log(`Adding assistant message to conversation ${conversationId}:`, { content, audioUrl, personaId });
 
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+  const demoMode = process.env.NEXT_PUBLIC_DEM_MODE === 'true'
   
   // Demo mode: add to in-memory conversation
   if (demoMode) {
@@ -135,8 +140,9 @@ export async function addAssistantMessage(conversationId: string, content: strin
       }
       conversation.messages.push(newMessage)
       conversation.updated_at = new Date().toISOString()
+      return newMessage;
     }
-    return true
+    return null;
   }
 
   try {
@@ -151,12 +157,12 @@ export async function addAssistantMessage(conversationId: string, content: strin
     if (!response.ok) {
         const errorBody = await response.text();
         console.error("Failed to add assistant message:", response.status, errorBody);
-        return false;
+        return null;
     }
 
-    return true; // Simplified from response.ok
+    return await response.json();
   } catch (error) {
     console.error("Exception when adding assistant message:", error);
-    return false;
+    return null;
   }
 }
