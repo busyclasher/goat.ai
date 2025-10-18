@@ -1,0 +1,222 @@
+# Goat AI - Requirements & Setup Guide
+
+## System Requirements
+
+### 1. Required Software
+- Node.js >= 18.0.0 (LTS recommended)
+- npm >= 9.0.0 (comes with Node.js)
+- Git (for version control)
+- Modern web browser (Chrome, Firefox, Safari, or Edge)
+
+### 2. Required API Keys & Services
+
+#### EXA API (Persona Building)
+- Purpose: Search web content to build AI personas
+- Sign up: https://exa.ai
+- Free tier: Available
+- Required: Yes (unless using demo mode)
+- Environment variable: EXA_API_KEY
+
+#### ElevenLabs API (Voice Features)
+- Purpose: Text-to-speech and speech-to-text
+- Sign up: https://elevenlabs.io
+- Free tier: 10,000 characters/month
+- Required: Optional (for voice features only)
+- Environment variable: ELEVEN_API_KEY
+
+#### Groq API (AI Chat)
+- Purpose: Power AI conversations using Llama 3.1
+- Sign up: https://console.groq.com
+- Free tier: Generous limits
+- Required: Yes (unless using demo mode)
+- Environment variable: GROQ_API_KEY
+
+#### Supabase (Database)
+- Purpose: Store personas, conversations, and messages
+- Sign up: https://supabase.com
+- Free tier: 500MB database, 2GB bandwidth
+- Required: Yes
+- Environment variables: 
+  - NEXT_PUBLIC_SUPABASE_URL
+  - NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+## NPM Dependencies
+
+### Production Dependencies
+```json
+{
+  "@elevenlabs/elevenlabs-js": "^2.19.0",
+  "@radix-ui/react-dialog": "^1.1.15",
+  "@radix-ui/react-slot": "^1.2.3",
+  "@radix-ui/react-toast": "^1.2.15",
+  "@supabase/supabase-js": "^2.x.x",
+  "class-variance-authority": "^0.7.1",
+  "clsx": "^2.1.1",
+  "elevenlabs": "^1.59.0",
+  "groq-sdk": "^0.x.x",
+  "lucide-react": "^0.546.0",
+  "next": "15.5.6",
+  "react": "19.1.0",
+  "react-dom": "19.1.0",
+  "tailwind-merge": "^3.3.1"
+}
+```
+
+### Development Dependencies
+```json
+{
+  "@eslint/eslintrc": "^3",
+  "@playwright/test": "^1.56.1",
+  "@tailwindcss/postcss": "^4",
+  "@types/node": "^20",
+  "@types/react": "^19",
+  "@types/react-dom": "^19",
+  "eslint": "^9",
+  "eslint-config-next": "15.5.6",
+  "tailwindcss": "^4",
+  "tsx": "^4.x.x",
+  "typescript": "^5"
+}
+```
+
+## Installation Steps
+
+### Step 1: Install Node.js
+```bash
+# Check if Node.js is installed
+node --version
+
+# If not installed, download from:
+# https://nodejs.org/
+```
+
+### Step 2: Clone/Download Project
+```bash
+# Navigate to project directory
+cd goat-ai
+```
+
+### Step 3: Install Dependencies
+```bash
+npm install
+```
+
+### Step 4: Set Up Environment Variables
+```bash
+# Run setup script to create .env.local
+npm run setup
+
+# Or manually create .env.local with:
+# EXA_API_KEY=your_exa_api_key_here
+# ELEVEN_API_KEY=your_elevenlabs_api_key_here
+# GROQ_API_KEY=your_groq_api_key_here
+# NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url_here
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+# NEXT_PUBLIC_DEMO_MODE=false
+```
+
+### Step 5: Set Up Supabase Database
+1. Create a new project at https://supabase.com
+2. Go to SQL Editor in your Supabase dashboard
+3. Copy and paste the contents of `supabase/schema.sql`
+4. Run the SQL script
+5. Get your project URL and anon key from Settings > API
+6. Add them to your .env.local file
+
+### Step 6: Start Development Server
+```bash
+npm run dev
+```
+
+Visit http://localhost:3000
+
+## Optional Setup
+
+### Demo Mode (No API Keys Required)
+Set in .env.local:
+```bash
+NEXT_PUBLIC_DEMO_MODE=true
+```
+This allows you to test the UI without setting up any APIs.
+
+### Playwright Testing
+```bash
+# Install Playwright browsers
+npx playwright install
+
+# Run tests
+npm run test:e2e
+```
+
+## Minimum Setup (Demo Mode)
+
+If you just want to test the UI without APIs:
+
+1. Install Node.js
+2. Run `npm install`
+3. Create .env.local with:
+   ```
+   NEXT_PUBLIC_DEMO_MODE=true
+   NEXT_PUBLIC_SUPABASE_URL=dummy
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy
+   ```
+4. Run `npm run dev`
+
+## Full Setup (Production Ready)
+
+For full functionality with all features:
+
+1. ✅ Node.js installed
+2. ✅ All dependencies installed (`npm install`)
+3. ✅ EXA API key obtained
+4. ✅ Groq API key obtained
+5. ✅ ElevenLabs API key obtained (for voice)
+6. ✅ Supabase project created
+7. ✅ Supabase schema deployed
+8. ✅ All environment variables configured
+9. ✅ Development server running
+
+## Troubleshooting
+
+### "Module not found" errors
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### "Port 3000 already in use"
+```bash
+# Kill the process using port 3000
+# Windows:
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+
+# Mac/Linux:
+lsof -ti:3000 | xargs kill
+```
+
+### "Cannot find module 'groq-sdk'"
+```bash
+npm install groq-sdk
+```
+
+### Database connection errors
+- Verify Supabase URL and anon key in .env.local
+- Check that schema.sql has been run in Supabase
+- Ensure RLS policies are set up correctly
+
+## Cost Estimates (Free Tiers)
+
+- **Groq**: Free tier with generous limits
+- **ElevenLabs**: 10,000 characters/month free
+- **Supabase**: 500MB database, 2GB bandwidth free
+- **Exa**: Limited free searches
+- **Total Monthly Cost**: $0 for development/testing
+
+## Support
+
+For issues or questions:
+1. Check the README.md file
+2. Review the troubleshooting section
+3. Check browser console for errors
+4. Verify all environment variables are set correctly
