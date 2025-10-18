@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
+import { Copy, Check } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
 import { cn } from "@/lib/utils";
 
@@ -27,26 +28,20 @@ interface ChatListProps {
 }
 
 export function ChatList({ messages, className }: ChatListProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Handle empty state
-  if (!messages || messages.length === 0) {
-    return (
-      <div className={cn("flex items-center justify-center h-full p-4", className)}>
-        <div className="text-center text-gray-400">
-          <p className="text-lg mb-2">No messages yet</p>
-          <p className="text-sm">Start a conversation below</p>
-        </div>
-      </div>
-    );
-  }
+  const handleCopy = (content: string, messageId: string) => {
+    if (copiedMessageId === messageId) return;
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
+  };
 
   return (
-    <div className={cn("p-4 space-y-4 min-h-full", className)}>
+    <div className={cn("p-4 space-y-4", className)}>
       {messages.map((message) => {
         // Add null check for message
         if (!message || !message.id) {
@@ -58,7 +53,7 @@ export function ChatList({ messages, className }: ChatListProps) {
           <div
             key={message.id}
             className={cn(
-              "flex gap-3 items-start",
+              "flex gap-3 items-start group",
               message.role === "user" ? "justify-end" : "justify-start"
             )}
           >
@@ -109,6 +104,22 @@ export function ChatList({ messages, className }: ChatListProps) {
               </div>
             </div>
 
+            {message.role === "assistant" && message.content && (
+              <div className="flex-shrink-0 self-center">
+                <button
+                  onClick={() => handleCopy(message.content, message.id)}
+                  className="p-1 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Copy message"
+                >
+                  {copiedMessageId === message.id ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            )}
+
             {message.role === "user" && (
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-sm font-medium">
                 U
@@ -117,7 +128,6 @@ export function ChatList({ messages, className }: ChatListProps) {
           </div>
         );
       })}
-      <div ref={messagesEndRef} />
     </div>
   );
 }

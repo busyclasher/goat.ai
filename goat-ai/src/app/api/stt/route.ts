@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
         // ElevenLabs expects multipart/form-data with 'file' field and 'model_id'
         const sttFormData = new FormData();
         sttFormData.append('file', audioBlob, audioFile.name);
-        sttFormData.append('model_id', 'eleven_multilingual_v2');
+        sttFormData.append('model_id', 'scribe_v1');
         
-        const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+        const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text?temperature=0.1", {
           method: "POST",
           headers: {
             "xi-api-key": elevenApiKey,
@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
         if (response.ok) {
           const data = await response.json();
           console.log("[STT] ElevenLabs success:", data);
-          return NextResponse.json({ text: data.text || "" });
+          // Only return if text is not empty, otherwise fallback to Groq
+          if (data.text && data.text.trim()) {
+            return NextResponse.json({ text: data.text || "" });
+          }
+          console.log("[STT] ElevenLabs returned empty text, falling back to Groq...");
         } else {
           const errorText = await response.text();
           console.error("[STT] ElevenLabs error:", response.status, errorText);
