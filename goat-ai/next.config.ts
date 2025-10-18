@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '**',
       },
+      // Also allow HTTP images (some sources still use HTTP)
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
     ],
   },
 };

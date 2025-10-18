@@ -72,21 +72,11 @@ export async function POST(req: Request) {
       ? `\n\nTopics to Avoid:\n${personaData.taboo.map((t: string) => `- ${t}`).join('\n')}`
       : '';
 
-    const emotionInstructions = `\n\nCRITICAL RESPONSE LIMIT: Keep all responses to a MAXIMUM of 3 sentences. Be concise and impactful.
-
-IMPORTANT VOICE DELIVERY INSTRUCTIONS:
-When responding, use natural narrative context to indicate emotion and delivery style. Instead of explicit tags, incorporate emotion through narrative phrasing:
-- For laughter: "she chuckled" or "with a laugh"  
-- For thoughtful pauses: "pausing thoughtfully" or "after a moment"
-- For excitement: "said excitedly" or "with enthusiasm"
-- For whispers/soft tone: "whispered" or "softly"
-- For sarcasm: "said sarcastically" or "with obvious sarcasm"
-
-Examples:
-❌ Bad: "That's interesting. [chuckles] Well, based on my experience..."
-✅ Good: "That's interesting," she chuckled. "Well, based on my experience..."
-
-Keep it natural and conversational. The AI voice will interpret these delivery cues without reading them as literal instructions.`;
+    const emotionInstructions = `\n\nCRITICAL INSTRUCTIONS:
+- Keep all responses to a MAXIMUM of 3 sentences. Be concise and impactful.
+- Respond in first person as this persona - you ARE them, not narrating about them.
+- Use natural, conversational language without any emotion tags, brackets, or third-person narrative.
+- Express emotion through word choice and phrasing, not through descriptive tags.`;
 
     const messages = [
       {
