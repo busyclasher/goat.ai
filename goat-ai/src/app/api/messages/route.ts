@@ -12,26 +12,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Insert the new message with optional persona_id
-    const messageData: {
-      conversation_id: string;
-      role: string;
-      content: string;
-      audio_url?: string;
-      persona_id?: string;
-    } = {
+    // 1. Insert the new message
+    const { error: messageError } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       role,
-      content, // Database schema uses 'content' column
+      text: content, // Ensure we are writing to the 'text' column
       audio_url: audioUrl,
-    };
-
-    // Only add persona_id if provided (typically for assistant messages)
-    if (personaId) {
-      messageData.persona_id = personaId;
-    }
-
-    const { error: messageError } = await supabase.from("messages").insert(messageData);
+    });
 
     if (messageError) {
       console.error("Error inserting message:", messageError);

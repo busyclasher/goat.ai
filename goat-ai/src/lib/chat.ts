@@ -3,44 +3,30 @@ import { supabase, type Conversation, type Message } from './supabase'
 // In-memory storage for demo mode
 const demoConversations: Map<string, Conversation & { messages: Message[] }> = new Map()
 
-export async function getConversation(conversationId: string): Promise<(Conversation & { messages: Message[] }) | null> {
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
-  
+export async function getConversation(
+  conversationId: string
+): Promise<(Conversation & { messages: Message[] }) | null> {
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
   // Demo mode: use in-memory storage
   if (demoMode) {
-    return demoConversations.get(conversationId) || null
+    return demoConversations.get(conversationId) || null;
   }
 
-  // Real mode: use Supabase with persona data joined
-  const { data: conversation, error: conversationError } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('id', conversationId)
-    .single()
+  try {
+    const response = await fetch(`/api/conversations/${conversationId}`);
 
-  if (conversationError) {
-    console.error('Error fetching conversation:', conversationError)
-    return null
-  }
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error fetching conversation:", errorData.error);
+      return null;
+    }
 
-  // Fetch messages with joined persona data
-  const { data: messages, error: messagesError } = await supabase
-    .from('messages')
-    .select(`
-      *,
-      persona:personas(*)
-    `)
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-
-  if (messagesError) {
-    console.error('Error fetching messages:', messagesError)
-    return null
-  }
-
-  return {
-    ...conversation,
-    messages: messages || []
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Exception when trying to fetch conversation:", error);
+    return null;
   }
 }
 
