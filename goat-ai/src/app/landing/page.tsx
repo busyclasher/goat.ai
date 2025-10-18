@@ -181,6 +181,7 @@ export default function LandingPage() {
               <button
                 key={persona.slug}
                 onClick={() => setSelectedPersona(persona)}
+                onDoubleClick={() => handleStartChat(persona.slug)}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   selectedPersona?.slug === persona.slug
                     ? "border-blue-500 bg-blue-50"

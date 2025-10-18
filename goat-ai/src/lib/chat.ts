@@ -34,7 +34,7 @@ export async function createConversation(
   personaId: string,
   userId?: string,
   title?: string,
-): Promise<Conversation | null> {
+): Promise<(Conversation & { messages: Message[] }) | null> {
   const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
   // Demo mode: create in memory

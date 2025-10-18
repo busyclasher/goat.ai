@@ -29,9 +29,15 @@ function ChatPageContent() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [conversation, setConversation] = useState<(ConversationType & { messages: Message[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   const hasAutoSentRef = useRef(false);
+  const [autoPlayMessageId, setAutoPlayMessageId] = useState<string | null>(null);
+
+  const handleAutoPlayComplete = () => {
+    setAutoPlayMessageId(null);
+  };
 
   useEffect(() => {
     const fetchPersonas = async () => {
@@ -74,7 +80,7 @@ function ChatPageContent() {
           const newConversation = await createConversation(persona.id);
           if (newConversation) {
             setConversationId(newConversation.id);
-            setConversation(newConversation); // Also set the conversation object
+            setConversation(newConversation as ConversationType & { messages: Message[] }); // Also set the conversation object
           }
         } catch (err) {
           console.error("Error creating conversation:", err);
@@ -152,6 +158,9 @@ function ChatPageContent() {
   }, [conversationId]);
 
   const handlePersonaSwitch = async (slug: string, remainingMessage?: string) => {
+    if (window.currentlyPlayingAudio) {
+      window.currentlyPlayingAudio.pause();
+    }
     if (!conversationId) {
       setToast({ message: "No active conversation", type: "error" });
       return;
@@ -184,7 +193,7 @@ function ChatPageContent() {
 
       // If there's a remaining message, send it with the new persona
       if (remainingMessage?.trim()) {
-        await handleSendMessage(remainingMessage);
+        await handleSendMessage(remainingMessage, conversationId, newPersona);
       }
     } catch (err) {
       console.error("Error switching persona:", err);
@@ -283,18 +292,39 @@ function ChatPageContent() {
       return { text: "I'm sorry, I'm having trouble processing that right now." };
     }
   }, []);
-
+  
   const handleSendMessage = useCallback(async (content: string, convId?: string, personaOverride?: Persona) => {
+    if (window.currentlyPlayingAudio) {
+      window.currentlyPlayingAudio.pause();
+    }
+
+    const personaTagMatch = content.match(/^@(\w+)\s*(.*)/s);
+    let finalContent = content;
+    let taggedPersona: Persona | undefined = undefined;
+
+    if (personaTagMatch) {
+      const taggedSlug = personaTagMatch[1];
+      const remainingMessage = personaTagMatch[2];
+      
+      const foundPersona = personas.find(p => p.slug === taggedSlug);
+
+      if (foundPersona && foundPersona.id !== persona?.id) {
+        taggedPersona = foundPersona;
+        finalContent = remainingMessage || ""; // Use remaining message or empty string
+      }
+    }
+
     const activeConversationId = convId || conversationId;
-    const activePersona = personaOverride || persona;
+    const activePersona = taggedPersona || personaOverride || persona;
     if (!activeConversationId || !activePersona) return;
 
     try {
       setError(null);
+      setIsReplying(true);
       const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
       
       // Send user message (no persona_id for user messages)
-      await sendMessage(activeConversationId, content);
+      await sendMessage(activeConversationId, finalContent);
 
       // In demo mode, manually update the conversation state
       if (demoMode) {
@@ -303,15 +333,16 @@ function ChatPageContent() {
       }
 
       // Generate AI response
-      const response = await generateAIResponse(content, activePersona, activeConversationId);
+      const response = await generateAIResponse(finalContent, activePersona, activeConversationId);
 
-      // Autoplay audio as soon as it's generated
-      if (response.audioUrl) {
-        const audio = new Audio(response.audioUrl);
-        audio.play().catch(err => console.error("Audio playback failed:", err));
-      }
+      // Hide indicator before showing the message
+      setIsReplying(false);
 
       const newMessage = await addAssistantMessage(activeConversationId, response.text, response.audioUrl, activePersona.id);
+
+      if (newMessage?.audio_url) {
+        setAutoPlayMessageId(newMessage.id);
+      }
 
       // Optimistically update the conversation state
       if (newMessage) {
@@ -336,8 +367,9 @@ function ChatPageContent() {
     } catch (err) {
       console.error("Error sending message:", err);
       setToast({ message: "Failed to send message", type: "error" });
+      setIsReplying(false);
     }
-  }, [conversationId, persona, generateAIResponse]);
+  }, [conversationId, persona, personas, generateAIResponse]);
 
   // Auto-send initial message from URL parameter
   useEffect(() => {
@@ -430,7 +462,13 @@ function ChatPageContent() {
                 description="Start a conversation below"
               />
             ) : (
-              <ChatList messages={conversation.messages} />
+              <ChatList 
+                messages={conversation.messages}
+                isLoading={isReplying}
+                activePersona={persona}
+                autoPlayMessageId={autoPlayMessageId}
+                onAutoPlayComplete={handleAutoPlayComplete}
+              />
             )}
           </ConversationContent>
           <ConversationScrollButton />

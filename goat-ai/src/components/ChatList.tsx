@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Copy, Check } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
+import { ThinkingIndicator } from "./ThinkingIndicator";
 import { cn, stripEmotionTags } from "@/lib/utils";
 
 interface Message {
@@ -22,12 +23,24 @@ interface Message {
   created_at: string;
 }
 
-interface ChatListProps {
-  messages: Message[];
-  className?: string;
+interface Persona {
+  id: string;
+  slug: string;
+  name: string;
+  voice_id?: string;
+  avatar_url?: string;
 }
 
-export function ChatList({ messages, className }: ChatListProps) {
+interface ChatListProps {
+  messages: Message[];
+  isLoading: boolean;
+  activePersona: Persona | null;
+  className?: string;
+  autoPlayMessageId?: string | null;
+  onAutoPlayComplete: () => void;
+}
+
+export function ChatList({ messages, isLoading, activePersona, className, autoPlayMessageId, onAutoPlayComplete }: ChatListProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const handleCopy = (content: string, messageId: string) => {
@@ -97,6 +110,8 @@ export function ChatList({ messages, className }: ChatListProps) {
                     <div className="flex-shrink-0">
                       <AudioPlayer 
                         audioUrl={message.audio_url} 
+                        autoPlay={message.id === autoPlayMessageId}
+                        onAutoPlayComplete={onAutoPlayComplete}
                       />
                     </div>
                   )}
@@ -128,6 +143,28 @@ export function ChatList({ messages, className }: ChatListProps) {
           </div>
         );
       })}
+
+      {isLoading && (
+        <div className="flex gap-3 items-start group justify-start">
+          {activePersona?.avatar_url ? (
+            <Image src={activePersona.avatar_url} alt={activePersona.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+              {activePersona?.name?.[0]?.toUpperCase() || "AI"}
+            </div>
+          )}
+          <div className="max-w-[70%] min-w-[100px] flex flex-col gap-1">
+            {activePersona && (
+              <div className="text-xs font-medium text-gray-600 px-1">
+                {activePersona.name}
+              </div>
+            )}
+            <div className="rounded-lg px-4 py-2 break-words bg-gray-100 text-gray-900">
+              <ThinkingIndicator />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

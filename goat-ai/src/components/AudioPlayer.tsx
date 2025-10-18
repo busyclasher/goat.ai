@@ -5,86 +5,97 @@ import { Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BarVisualizer } from "@/components/ui/bar-visualizer";
 
+declare global {
+  interface Window {
+    currentlyPlayingAudio?: HTMLAudioElement;
+  }
+}
+
 interface AudioPlayerProps {
   audioUrl: string;
   autoPlay?: boolean;
   className?: string;
+  onAutoPlayComplete?: () => void;
 }
 
-export function AudioPlayer({ audioUrl, autoPlay = false, className }: AudioPlayerProps) {
+export function AudioPlayer({ audioUrl, autoPlay = false, className, onAutoPlayComplete }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
+  const setupVisualization = () => {
+    const audio = audioRef.current;
+    if (!audio || audioContextRef.current) return;
+
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaElementSource(audio);
+      const destination = audioContext.createMediaStreamDestination();
+
+      source.connect(destination);
+      source.connect(audioContext.destination);
+
+      audioContextRef.current = audioContext;
+      sourceRef.current = source;
+      destinationRef.current = destination;
+      setAudioStream(destination.stream);
+    } catch (error) {
+      console.warn("Could not create audio stream for visualization:", error);
+    }
+  };
+
+  const onPlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    const handlePlay = () => {
-      setIsPlaying(true);
-      
-      // Create audio stream for visualization
-      if (!audioContextRef.current) {
-        try {
-          const audioContext = new AudioContext();
-          const source = audioContext.createMediaElementSource(audio);
-          const destination = audioContext.createMediaStreamDestination();
-          
-          source.connect(destination);
-          source.connect(audioContext.destination);
-          
-          audioContextRef.current = audioContext;
-          sourceRef.current = destination;
-          setAudioStream(destination.stream);
-        } catch (error) {
-          console.warn("Could not create audio stream for visualization:", error);
-        }
-      }
-    };
     
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
+    if (window.currentlyPlayingAudio && window.currentlyPlayingAudio !== audio) {
+      window.currentlyPlayingAudio.pause();
+    }
+    window.currentlyPlayingAudio = audio;
+    setIsPlaying(true);
+    setupVisualization();
+  };
 
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('ended', handleEnded);
-      
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-    };
-  }, []);
+  const onPauseOrEnd = () => {
+    setIsPlaying(false);
+    if (window.currentlyPlayingAudio === audioRef.current) {
+      window.currentlyPlayingAudio = undefined;
+    }
+  };
 
   useEffect(() => {
     if (autoPlay && audioRef.current && audioUrl && isClient) {
-      // Small delay to ensure audio is loaded
       const timer = setTimeout(() => {
-        const playPromise = audioRef.current?.play();
-        
-        playPromise?.then(() => {
-          console.log('Autoplay started successfully');
-        }).catch((err) => {
-          console.warn('Autoplay blocked by browser:', err);
-          // Browser blocked autoplay - user will need to click play button
-          // This is normal behavior for many browsers
+        audioRef.current?.play().catch(err => {
+          console.warn("Autoplay was blocked by the browser.", err);
         });
+        if (onAutoPlayComplete) {
+          onAutoPlayComplete();
+        }
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [autoPlay, audioUrl, isClient]);
+  }, [autoPlay, audioUrl, isClient, onAutoPlayComplete]);
+  
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (window.currentlyPlayingAudio === audio) {
+        window.currentlyPlayingAudio = undefined;
+      }
+    };
+  }, []);
 
   const togglePlay = () => {
     if (audioRef.current) {
@@ -129,6 +140,9 @@ export function AudioPlayer({ audioUrl, autoPlay = false, className }: AudioPlay
         src={audioUrl}
         preload="auto"
         className="hidden"
+        onPlay={onPlay}
+        onPause={onPauseOrEnd}
+        onEnded={onPauseOrEnd}
       />
     </div>
   );
