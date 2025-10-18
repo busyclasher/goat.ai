@@ -51,18 +51,32 @@ export async function POST(req: Request) {
 
     const activePersona = personaData;
 
-    // 2. Use activePersona.system_prompt as LLM system message and compose Groq prompt.
+    // 2. Fetch conversation history from messages table
+    const { data: messageHistory, error: messagesError } = await supabase
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+
+    if (messagesError) throw messagesError;
+
+    // 3. Build messages array: system prompt + history
+    // Note: The current user message is already saved in DB and included in messageHistory
+    const messages = [
+      {
+        role: "system" as const,
+        content: activePersona.system_prompt,
+      },
+      // Add conversation history (includes the current user message)
+      ...(messageHistory || []).map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+    ];
+
+    // 4. Call Groq with full conversation context
     const groqResponse = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: activePersona.system_prompt,
-        },
-        {
-          role: "user",
-          content: text,
-        },
-      ],
+      messages,
       model: "meta-llama/llama-4-scout-17b-16e-instruct",
       temperature: 0.7,
       max_tokens: 500,

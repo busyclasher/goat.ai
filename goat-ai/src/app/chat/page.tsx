@@ -259,7 +259,9 @@ function ChatPageContent() {
       });
 
       if (!llmResponse.ok) {
-        throw new Error('LLM API error');
+        const errorData = await llmResponse.json();
+        console.error('LLM API error details:', errorData);
+        throw new Error(`LLM API error: ${errorData.error || llmResponse.statusText}`);
       }
 
       const { text } = await llmResponse.json();

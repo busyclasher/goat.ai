@@ -96,7 +96,6 @@ export function ChatList({ messages, className }: ChatListProps) {
                     <div className="flex-shrink-0">
                       <AudioPlayer 
                         audioUrl={message.audio_url} 
-                        autoPlay={message.role === "assistant"}
                       />
                     </div>
                   )}
