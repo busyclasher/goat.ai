@@ -5,38 +5,62 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Define keywords for more dynamic stripping
+const NARRATIVE_SUBJECTS = ['he', 'she', 'they', 'I'];
+const NARRATIVE_VERBS = [
+  'said', 'replied', 'whispered', 'chuckled', 'laughed', 'noted', 'added', 
+  'continued', 'murmured', 'paused', 'sighed', 'smiled', 'nodded', 'mused'
+];
+
 /**
- * Strips emotion tags and narrative context markers from text for clean UI display
- * - Removes square bracket tags: [chuckles], [thoughtfully], etc.
- * - Removes narrative context: "she said", "he chuckled", etc.
- * - Keeps quoted dialogue and main content
- * Tags/context are preserved for TTS processing
+ * Strips emotion tags and narrative context markers from text for clean UI display.
+ * This version uses keyword lists to build regular expressions dynamically,
+ * making it easier to maintain and expand.
  */
 export function stripEmotionTags(text: string): string {
-  // First, remove square bracket tags (legacy format)
-  let cleaned = text.replace(/\[[\w\s]+\]/g, '');
+  if (!text) return "";
+
+  let cleaned = text;
+
+  // 1. Remove legacy square bracket tags like [chuckles]
+  cleaned = cleaned.replace(/\[(.*?)\]/g, '');
+
+  // 2. Build and apply dynamic regex for narrative actions
+  const subjects = NARRATIVE_SUBJECTS.join('|');
+  const verbs = NARRATIVE_VERBS.join('|');
   
-  // Remove narrative context patterns like:
-  // "she chuckled", "he said excitedly", "pausing thoughtfully", etc.
-  cleaned = cleaned
-    // Remove standalone narrative markers: "she chuckled", "he said thoughtfully"
-    .replace(/\b(she|he|I)\s+(said|chuckled|laughed|whispered|paused|sighed|continued|replied|responded)(\s+\w+ly)?\s*[,.]?\s*/gi, '')
-    // Remove "with a/an [emotion]" patterns: "with a laugh", "with enthusiasm"
-    .replace(/\s*with\s+(a|an)\s+\w+\s*/gi, ' ')
-    // Remove "after a moment" type phrases
-    .replace(/\s*after\s+a\s+(moment|pause|beat)\s*/gi, ' ')
-    // Remove "pausing [adverb]" patterns
-    .replace(/\s*pausing\s+\w+ly\s*/gi, ' ')
-    // Clean up excessive quotes and commas left behind
-    .replace(/[,]\s*["']/g, ' "')
-    .replace(/["']\s*[,]/g, '" ')
-    // Remove double spaces and trim
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  // Regex for dialogue interruptions like ," he said, " or ." he said. "
+  const interruptionRegex = new RegExp(`"\\s*,?\\s*(${subjects})\\s+(${verbs})[^"]*\\.\\s*"`, 'gi');
+  cleaned = cleaned.replace(interruptionRegex, ' ');
+
+  // Regex for clauses like ", she said thoughtfully."
+  const narrativeClauseRegex = new RegExp(`,\\s*(${subjects})\\s*(${verbs})\\s*\\w*\\s*[.]?`, 'gi');
+  cleaned = cleaned.replace(narrativeClauseRegex, '.');
   
-  // Clean up any orphaned punctuation at the start
-  cleaned = cleaned.replace(/^[,.\s]+/, '');
+  // Regex for standalone sentences like "She paused." or "He chuckled thoughtfully."
+  const narrativeSentenceRegex = new RegExp(`(?:^|\\.\\s*|\\n\\s*)(${subjects})\\s*(${verbs})(\\s+\\w+)?\\.`, 'gi');
+  cleaned = cleaned.replace(narrativeSentenceRegex, '.');
+
+  // 3. Remove leading verb phrases like "Pausing thoughtfully, "
+  cleaned = cleaned.replace(/^(Pausing|Chuckling|Laughing|Sighing)\\s*\\w*,\\s*/i, '');
+
+  // 4. Remove phrases like "with a smile" or "after a moment"
+  cleaned = cleaned.replace(/\\s*\\bwith\\s+a\\s+(smile|laugh|chuckle|sigh|nod)\\b/gi, '');
+  cleaned = cleaned.replace(/\\s*\\bafter\\s+a\\s+(moment|pause)\\b[,.]?/gi, '');
+
+  // 5. Final cleanup for quotes, spaces, and punctuation
+  cleaned = cleaned.replace(/"\\s*,/g, '"'); // " , -> "
+  cleaned = cleaned.replace(/\\s{2,}/g, ' '); // Collapse multiple spaces
+  cleaned = cleaned.trim();
   
+  // Remove orphaned leading punctuation
+  if (cleaned.startsWith('.') || cleaned.startsWith(',')) {
+    cleaned = cleaned.substring(1).trim();
+  }
+
+  // Remove surrounding quotes if they are the only thing left around the text
+  cleaned = cleaned.replace(/^"(.*)"$/, '$1');
+
   return cleaned;
 }
 

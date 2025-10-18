@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback, useRef } from "react";
+import { useState, useEffect, Suspense, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChatList } from "@/components/ChatList";
@@ -15,8 +15,10 @@ import {
 import { Loader2, ArrowLeft } from "lucide-react";
 import { getPersona, buildPersona, listPersonas } from "@/lib/personas";
 import { getConversation, createConversation, sendMessage, addAssistantMessage } from "@/lib/chat";
-import type { Persona, Conversation as ConversationType, Message } from "@/lib/supabase";
+import type { Persona, Conversation as ConversationType, Message as SupabaseMessage } from "@/lib/supabase";
 import Link from "next/link";
+
+type Message = SupabaseMessage & { type?: 'system_notification' };
 
 function ChatPageContent() {
   const searchParams = useSearchParams();
@@ -38,6 +40,26 @@ function ChatPageContent() {
   const handleAutoPlayComplete = () => {
     setAutoPlayMessageId(null);
   };
+
+  const participatingPersonas = useMemo(() => {
+    if (!conversation?.messages) return persona ? [persona] : [];
+
+    const personaMap = new Map<string, Persona>();
+
+    // Start with the current active persona
+    if (persona) {
+      personaMap.set(persona.id, persona);
+    }
+
+    // Add all personas from messages
+    conversation.messages.forEach(message => {
+      if (message.persona && !personaMap.has(message.persona.id)) {
+        personaMap.set(message.persona.id, message.persona);
+      }
+    });
+
+    return Array.from(personaMap.values());
+  }, [conversation, persona]);
 
   useEffect(() => {
     const fetchPersonas = async () => {
@@ -190,6 +212,23 @@ function ChatPageContent() {
       setPersona(newPersona);
       setCurrentPersonaSlug(slug);
       setToast({ message: `Switched to ${newPersona.name}`, type: "success" });
+
+      const systemMessage = {
+        id: `system-join-${newPersona.id}-${Date.now()}`,
+        role: 'assistant',
+        content: `${newPersona.name} has joined the conversation.`,
+        created_at: new Date().toISOString(),
+        type: 'system_notification',
+        conversation_id: conversationId,
+      } as Message;
+
+      setConversation(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, systemMessage]
+        };
+      });
 
       // If there's a remaining message, send it with the new persona
       if (remainingMessage?.trim()) {
@@ -490,20 +529,62 @@ function ChatPageContent() {
           <Link href="/landing" className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
-          {persona && (
-            <>
-              {persona.avatar_url ? (
-                <Image src={persona.avatar_url} alt={persona.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-                  {persona.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <h1 className="font-semibold text-gray-900">{persona.name}</h1>
-                <p className="text-sm text-gray-500">@{persona.slug}</p>
+
+          {participatingPersonas.length > 1 ? (
+            <div className="flex items-center">
+              <div className="flex -space-x-4 rtl:space-x-reverse">
+                {participatingPersonas.slice(0, 3).map((p, index) =>
+                  p.avatar_url ? (
+                    <Image
+                      key={p.id}
+                      src={p.avatar_url}
+                      alt={p.name}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-white"
+                      style={{ zIndex: participatingPersonas.length - index }}
+                    />
+                  ) : (
+                    <div
+                      key={p.id}
+                      className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium border-2 border-white"
+                      style={{ zIndex: participatingPersonas.length - index }}
+                    >
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                  )
+                )}
+                {participatingPersonas.length > 3 && (
+                  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 font-medium border-2 border-white" style={{ zIndex: 0 }}>
+                    +{participatingPersonas.length - 3}
+                  </div>
+                )}
               </div>
-            </>
+              <div className="ml-3">
+                <h1 className="font-semibold text-gray-900 truncate max-w-xs">
+                  {participatingPersonas.map(p => p.name).join(', ')}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {participatingPersonas.length} participants
+                </p>
+              </div>
+            </div>
+          ) : (
+            persona && (
+              <>
+                {persona.avatar_url ? (
+                  <Image src={persona.avatar_url} alt={persona.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                    {persona.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h1 className="font-semibold text-gray-900">{persona.name}</h1>
+                  <p className="text-sm text-gray-500">@{persona.slug}</p>
+                </div>
+              </>
+            )
           )}
         </div>
       </header>

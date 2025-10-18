@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { Copy, Check } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
@@ -21,6 +21,7 @@ interface Message {
     avatar_url?: string;
   };
   created_at: string;
+  type?: 'system_notification';
 }
 
 interface Persona {
@@ -60,6 +61,17 @@ export function ChatList({ messages, isLoading, activePersona, className, autoPl
         if (!message || !message.id) {
           console.warn("Invalid message:", message);
           return null;
+        }
+
+        if (message.type === 'system_notification') {
+          return (
+            <div key={message.id} className="flex justify-start">
+              <div className="w-8 flex-shrink-0 mr-3"></div> {/* Spacer for alignment */}
+              <div className="text-xs text-gray-400 italic">
+                {message.content}
+              </div>
+            </div>
+          );
         }
 
         return (

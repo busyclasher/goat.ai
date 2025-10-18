@@ -33,14 +33,26 @@ export function Toast({
     setTimeout(onClose, 300);
   };
 
+  const toastTypeClasses = {
+    error: "bg-red-100 border-red-400 text-red-700",
+    success: "bg-blue-100 border-blue-400 text-blue-700",
+    info: "bg-gray-100 border-gray-400 text-gray-700",
+  };
+
+  const IconComponent = {
+    error: X,
+    success: X,
+    info: X,
+  };
+
+  const Icon = IconComponent[type];
+
   return (
     <div
       className={cn(
         "fixed top-4 right-4 z-50 max-w-sm p-4 rounded-lg shadow-lg transition-all duration-300",
         isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
-        type === "error" && "bg-red-500 text-white",
-        type === "success" && "bg-green-500 text-white",
-        type === "info" && "bg-blue-500 text-white"
+        toastTypeClasses[type]
       )}
       role="alert"
       aria-live="polite"
@@ -52,7 +64,7 @@ export function Toast({
           className="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
           aria-label="Close notification"
         >
-          <X className="w-4 h-4" />
+          <Icon className="w-4 h-4" />
         </button>
       </div>
     </div>
