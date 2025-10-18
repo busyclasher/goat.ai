@@ -1,6 +1,6 @@
 # GOAT.ai — Progress Report
 
-_Last updated: October 18, 2025 (Evening - Avatar Feature Added)_
+_Last updated: October 18, 2025 (Evening - Avatar Troubleshooting Fix)_
 
 ---
 
@@ -8,11 +8,58 @@ _Last updated: October 18, 2025 (Evening - Avatar Feature Added)_
 
 **Overall Progress: ~95% Complete**
 
-The MVP is fully functional with all core features implemented and enhanced. The application successfully demonstrates voice-to-text input, AI chat with personas using emotion annotations for expressive speech, and text-to-speech output with vocal inflections. Personas now utilize their full style bullets and taboo topics during conversations. Key remaining areas: performance optimization to meet <5s round-trip requirement and final demo preparation.
+The MVP is fully functional with all core features implemented and enhanced. The application successfully demonstrates voice-to-text input, AI chat with personas using emotion annotations for expressive speech, and text-to-speech output with vocal inflections. Personas now utilize their full style bullets and taboo topics during conversations. Profile pictures are automatically fetched for new personas. Key remaining areas: performance optimization to meet <5s round-trip requirement and final demo preparation.
 
 ---
 
 ## 🔧 Latest Fixes (October 18, 2025 - Evening)
+
+### Critical Fix: Profile Pictures Not Appearing
+
+**Issue:** Profile pictures were not being fetched during persona creation despite the feature being implemented.
+
+**Root Cause:** The `GOOGLE_SEARCH_ENGINE_ID` environment variable was incorrectly set to a full URL (`https://cse.google.com/cse.js?cx=629996c02aa6d49fb`) instead of just the search engine ID (`629996c02aa6d49fb`).
+
+**Solution:**
+1. ✅ **Fixed `.env.local` Configuration**
+   - Corrected `GOOGLE_SEARCH_ENGINE_ID` to use only the ID value
+   - Changed from: `https://cse.google.com/cse.js?cx=629996c02aa6d49fb`
+   - Changed to: `629996c02aa6d49fb`
+   - This allows the Google Custom Search API to work correctly
+
+2. ✅ **Created Test Script** - `scripts/test-image-search.js`
+   - Quickly verifies Google Image Search API is working
+   - Tests image fetching for any person name
+   - Shows API quota usage and image details
+   - Usage: `node scripts/test-image-search.js "Person Name"`
+   - Confirmed working: Successfully fetched Jeff Bezos profile picture
+
+3. ✅ **Created Troubleshooting Guide** - `docs/TROUBLESHOOTING_AVATARS.md`
+   - Comprehensive guide for diagnosing avatar/profile picture issues
+   - Common problems and solutions documented
+   - Quick reference for environment variable format
+   - Testing checklist for avatar functionality
+   - Covers API errors, quota limits, and fallback behavior
+
+**Verification:**
+- ✅ Test script successfully fetches images from Google Custom Search API
+- ✅ Environment variables now in correct format
+- ✅ Dev server restarted to load new configuration
+- ✅ Ready for testing with real persona creation
+
+**Files Modified:**
+- `.env.local` - Fixed GOOGLE_SEARCH_ENGINE_ID format
+- `scripts/test-image-search.js` - New diagnostic tool
+- `docs/TROUBLESHOOTING_AVATARS.md` - New troubleshooting guide
+
+**Next Steps:**
+- Create a new persona through the UI to verify profile pictures now appear
+- Check server logs for `[Image Search]` messages
+- Confirm avatars display on landing page and in chat
+
+---
+
+## 🔧 Previous Fixes (October 18, 2025 - Evening)
 
 ### New Feature: Automatic Persona Avatar Fetching
 

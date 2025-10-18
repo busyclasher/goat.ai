@@ -8,7 +8,8 @@ import CreatePersonaModal from "@/components/CreatePersonaModal";
 import { listPersonas } from "@/lib/personas";
 import type { Persona } from "@/lib/supabase";
 
-const suggestedQuestions = [
+// Fallback questions for personas without suggested questions
+const defaultSuggestedQuestions = [
   "How do I get my first 1,000 customers?",
   "What's your best advice for entrepreneurs?",
   "How do I get better at strategy?",
@@ -141,7 +142,10 @@ export default function LandingPage() {
             Suggested Questions
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-            {suggestedQuestions.map((question, index) => (
+            {(selectedPersona?.suggested_questions && selectedPersona.suggested_questions.length > 0
+              ? selectedPersona.suggested_questions
+              : defaultSuggestedQuestions
+            ).map((question, index) => (
               <button
                 key={index}
                 onClick={() => handleStartChat(selectedPersona?.slug || "", question)}

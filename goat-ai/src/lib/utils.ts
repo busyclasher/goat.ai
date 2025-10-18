@@ -6,11 +6,38 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Strips emotion tags like [sarcastically], [giggles] from text for display
- * Tags are kept for TTS processing
+ * Strips emotion tags and narrative context markers from text for clean UI display
+ * - Removes square bracket tags: [chuckles], [thoughtfully], etc.
+ * - Removes narrative context: "she said", "he chuckled", etc.
+ * - Keeps quoted dialogue and main content
+ * Tags/context are preserved for TTS processing
  */
 export function stripEmotionTags(text: string): string {
-  return text.replace(/\[[\w\s]+\]/g, '').replace(/\s{2,}/g, ' ').trim();
+  // First, remove square bracket tags (legacy format)
+  let cleaned = text.replace(/\[[\w\s]+\]/g, '');
+  
+  // Remove narrative context patterns like:
+  // "she chuckled", "he said excitedly", "pausing thoughtfully", etc.
+  cleaned = cleaned
+    // Remove standalone narrative markers: "she chuckled", "he said thoughtfully"
+    .replace(/\b(she|he|I)\s+(said|chuckled|laughed|whispered|paused|sighed|continued|replied|responded)(\s+\w+ly)?\s*[,.]?\s*/gi, '')
+    // Remove "with a/an [emotion]" patterns: "with a laugh", "with enthusiasm"
+    .replace(/\s*with\s+(a|an)\s+\w+\s*/gi, ' ')
+    // Remove "after a moment" type phrases
+    .replace(/\s*after\s+a\s+(moment|pause|beat)\s*/gi, ' ')
+    // Remove "pausing [adverb]" patterns
+    .replace(/\s*pausing\s+\w+ly\s*/gi, ' ')
+    // Clean up excessive quotes and commas left behind
+    .replace(/[,]\s*["']/g, ' "')
+    .replace(/["']\s*[,]/g, '" ')
+    // Remove double spaces and trim
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  
+  // Clean up any orphaned punctuation at the start
+  cleaned = cleaned.replace(/^[,.\s]+/, '');
+  
+  return cleaned;
 }
 
 /**

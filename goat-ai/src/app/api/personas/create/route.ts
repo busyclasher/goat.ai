@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
       system_prompt:
         personaToSave.system_prompt || "You are a helpful assistant.",
       sources: personaToSave.sources || [],
+      suggested_questions: personaToSave.suggested_questions || [],
       voice_id: voiceId,
       avatar_url: avatarUrl || undefined,
     };

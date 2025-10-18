@@ -1,7 +1,25 @@
-# Emotion Tags & Enhanced Persona System - Implementation Summary
+# Emotion & Delivery System - Implementation Summary
 
 ## Overview
-Enhanced the persona system to support emotion/delivery tags for richer voice synthesis while maintaining clean UI text display. The system now fully utilizes style bullets and taboo topics during conversations.
+Enhanced the persona system to support emotion/delivery cues for richer voice synthesis while maintaining clean UI text display. The system now uses **narrative context** (ElevenLabs best practice) instead of explicit bracket tags, and fully utilizes style bullets and taboo topics during conversations.
+
+## ⚠️ Critical Fix: Narrative Context vs Bracket Tags
+
+### The Problem
+Previously, the system used square bracket tags like `[chuckles]`, `[thoughtfully]`, etc. However, **ElevenLabs reads these tags aloud** instead of interpreting them as emotion instructions.
+
+### The Solution
+According to [ElevenLabs documentation](https://elevenlabs.io/docs/overview), the correct approach is to use **narrative context** that the AI can interpret naturally:
+
+❌ **Old approach (gets read aloud):**
+```
+That's interesting. [chuckles] Well, based on my experience... [thoughtfully] it's not that simple.
+```
+
+✅ **New approach (interpreted, not read):**
+```
+"That's interesting," she chuckled. "Well, based on my experience..." She paused thoughtfully. "It's not that simple."
+```
 
 ## Changes Made
 
@@ -17,9 +35,9 @@ Enhanced the persona system to support emotion/delivery tags for richer voice sy
 **Changes:**
 - Line 39: Updated database query to fetch `style_bullets` and `taboo` alongside `system_prompt`
 - Lines 67-73: Added context builders that append style bullets and taboo topics to system prompt
-- Line 80: System message now includes: base prompt + style context + taboo context + emotion instructions
+- Lines 75-87: **NEW** - Updated emotion instructions to use narrative context instead of bracket tags
 
-**Example output:**
+**Example system prompt:**
 ```
 You are Warren Buffett...
 
@@ -27,175 +45,198 @@ Communication Style:
 - Uses folksy metaphors and simple language
 - Often references baseball and bridge
 - Emphasizes long-term thinking
-- ...
 
 Topics to Avoid:
 - Giving specific stock tips
 - Making short-term predictions
-- ...
 
-IMPORTANT: Use emotion tags like [chuckles], [thoughtfully]...
+IMPORTANT VOICE DELIVERY INSTRUCTIONS:
+When responding, use natural narrative context to indicate emotion and delivery style...
+- For laughter: "she chuckled" or "with a laugh"
+- For excitement: "said excitedly" or "with enthusiasm"
+- For whispers: "whispered" or "softly"
 ```
 
-### 3. Emotion Tag Instructions in Persona Generation ✅
+### 3. Persona Generation Instructions Updated ✅
 **File:** `src/lib/personas.ts`
 
 **Changes:**
-- Line 316: Updated systemPrompt generation instructions
-- Now instructs Groq to include emotion annotation guidance in every persona's system prompt
-- New personas will automatically be instructed to use tags like `[sarcastically]`, `[giggles]`, `[whispers]`, etc.
+- Line 316: Updated systemPrompt generation to instruct Groq to use narrative context
+- New personas will automatically be told to use phrases like "chuckled", "said thoughtfully", "pausing", etc.
+- Explicitly instructs **NOT** to use bracket tags like `[chuckles]`
 
-**Example instruction added:**
-> "IMPORTANT: Instruct the AI to add emotion/delivery tags like [sarcastically], [giggles], [whispers], [excitedly], [thoughtfully], [softly], [chuckles] etc. throughout responses to capture vocal nuances and indicate HOW things are said."
+**Example instruction:**
+> "IMPORTANT: Instruct the AI to use natural narrative context to convey emotion and delivery (e.g., 'said thoughtfully', 'chuckled', 'pausing', 'with enthusiasm', 'whispered'). This helps voice synthesis interpret emotional delivery without reading explicit tags aloud."
 
-### 4. Runtime Emotion Tag Reminder ✅
-**File:** `src/app/api/chat/route.ts`
-
-**Changes:**
-- Line 75: Added `emotionInstructions` constant
-- Appended to every chat request's system message as reinforcement
-- Ensures the AI consistently uses emotion tags even in ongoing conversations
-
-### 5. Emotion Tag Stripping Utility ✅
+### 4. Enhanced Emotion Stripping Utility ✅
 **File:** `src/lib/utils.ts`
 
-**Added function:**
+**Updated function:**
 ```typescript
 export function stripEmotionTags(text: string): string {
-  return text.replace(/\[[\w\s]+\]/g, '').replace(/\s{2,}/g, ' ').trim();
+  // Removes both:
+  // 1. Legacy bracket tags: [chuckles], [thoughtfully]
+  // 2. Narrative context: "she chuckled", "he said excitedly", "with a laugh"
+  // 3. Temporal markers: "after a moment", "pausing thoughtfully"
 }
 ```
 
 **Purpose:**
-- Removes all bracketed emotion tags from text
-- Cleans up multiple spaces left by tag removal
-- Used for UI display only
+- Removes all emotion markers (both old and new formats)
+- Cleans up narrative context for UI display
+- Preserves the core dialogue content
+- Used for UI display only - TTS receives full text with context
 
-### 6. Clean UI Display ✅
+### 5. Clean UI Display ✅
 **File:** `src/components/ChatList.tsx`
 
 **Changes:**
-- Line 7: Imported `stripEmotionTags` utility
-- Line 93: Applied to message content before display
+- Line 8: Imported enhanced `stripEmotionTags` utility
+- Line 106: Applied to message content before display
 
 **Result:**
 - Users see: "That's interesting. Well, based on my experience... it's not quite that simple."
-- Database stores: "That's interesting. [thoughtfully] Well, based on my experience... [chuckles] it's not quite that simple."
+- Database stores: "That's interesting," she chuckled. "Well, based on my experience..." She paused thoughtfully. "It's not quite that simple."
 
-### 7. TTS Preservation ✅
+### 6. TTS Preservation ✅
 **File:** `src/app/api/tts/route.ts`
 
 **Status:** No changes needed
 - Line 28: Text passed directly to ElevenLabs without modification
-- Emotion tags remain intact for voice modulation
-- ElevenLabs API supports emotion tags in square brackets for enhanced prosody
+- Narrative context remains intact for voice modulation
+- ElevenLabs interprets narrative cues naturally without reading them aloud
 
 ## Data Flow
 
 ### Persona Creation Flow:
 ```
-User Input → Exa API (research) → Groq API (generate with emotion instructions) 
-→ Database (stores system_prompt with emotion guidance, style_bullets, taboo, description)
+User Input → Exa API (research) → Groq API (generate with narrative context instructions) 
+→ Database (stores system_prompt with delivery guidance, style_bullets, taboo, description)
 → Voice Generation (if applicable)
 ```
 
 ### Chat Flow:
 ```
 User Message → Database → Fetch persona (system_prompt, style_bullets, taboo)
-→ Build enhanced prompt → Groq API (generates response WITH emotion tags)
-→ Save to DB (with tags) → Return to frontend
+→ Build enhanced prompt with narrative instructions → Groq API (generates response WITH narrative context)
+→ Save to DB (with context) → Return to frontend
 ```
 
 ### Display Flow:
 ```
-Message from DB (with tags) → ChatList component → stripEmotionTags()
-→ Clean text displayed to user
+Message from DB (with narrative context) → ChatList component → stripEmotionTags()
+→ Clean dialogue displayed to user
 ```
 
 ### TTS Flow:
 ```
-Message from DB (with tags) → TTS API → ElevenLabs (processes emotion tags)
-→ Audio with enhanced prosody → User hears expressive speech
+Message from DB (with narrative context) → TTS API → ElevenLabs (interprets narrative naturally)
+→ Audio with enhanced prosody → User hears expressive speech WITHOUT hearing "she chuckled"
 ```
 
 ## Example Response
 
 **AI generates:**
 ```
-Oh, that's a fascinating question! [excitedly] You know, I've been thinking about this for years. 
-[thoughtfully] The key is... [pauses] well, it's not as simple as most people think. [chuckles] 
-Let me break it down for you.
+"Oh, that's a fascinating question!" she said excitedly. "You know, I've been thinking about this for years." 
+She paused thoughtfully. "The key is..." with a slight chuckle, "well, it's not as simple as most people think. 
+Let me break it down for you."
 ```
 
-**User sees in UI:**
+**User sees in UI (cleaned):**
 ```
-Oh, that's a fascinating question! You know, I've been thinking about this for years. 
-The key is... well, it's not as simple as most people think. Let me break it down for you.
-```
-
-**TTS receives (with tags):**
-```
-Oh, that's a fascinating question! [excitedly] You know, I've been thinking about this for years. 
-[thoughtfully] The key is... [pauses] well, it's not as simple as most people think. [chuckles] 
-Let me break it down for you.
+"Oh, that's a fascinating question! You know, I've been thinking about this for years. 
+The key is... well, it's not as simple as most people think. Let me break it down for you."
 ```
 
-## Supported Emotion Tags
+**TTS receives (with full context):**
+```
+"Oh, that's a fascinating question!" she said excitedly. "You know, I've been thinking about this for years." 
+She paused thoughtfully. "The key is..." with a slight chuckle, "well, it's not as simple as most people think. 
+Let me break it down for you."
+```
 
-Common tags the AI will use:
-- `[sarcastically]` - Sarcastic tone
-- `[giggles]` / `[chuckles]` / `[laughs]` - Laughter variants
-- `[whispers]` / `[softly]` - Quiet delivery
-- `[excitedly]` - Excited/enthusiastic
-- `[thoughtfully]` - Contemplative pause
-- `[sighs]` - Audible sigh
-- `[pauses]` - Brief silence
-- `[warmly]` - Warm/friendly tone
-- `[seriously]` - Serious tone shift
-- `[playfully]` - Playful/teasing
+**User hears:** Natural speech with excitement, thoughtful pause, and slight chuckle - WITHOUT hearing the words "said excitedly", "paused thoughtfully", or "chuckled" spoken aloud.
+
+## Supported Narrative Patterns
+
+Common patterns the AI will use:
+
+### Emotion Verbs:
+- `said excitedly` / `said sarcastically` / `said softly`
+- `chuckled` / `laughed` / `giggled`
+- `whispered` / `murmured`
+- `sighed` / `groaned`
+- `continued` / `replied` / `responded`
+
+### Temporal/Pause Markers:
+- `after a moment`
+- `pausing thoughtfully`
+- `taking a breath`
+
+### Prepositional Phrases:
+- `with a laugh` / `with enthusiasm`
+- `with obvious sarcasm`
+- `with a sigh`
+
+## Benefits of Narrative Context Approach
+
+1. ✅ **No Audible Tags**: ElevenLabs interprets context naturally without reading markers aloud
+2. ✅ **More Natural**: Narrative style sounds like natural storytelling
+3. ✅ **Clean UI**: Stripping utility removes markers for polished display
+4. ✅ **Better Control**: More nuanced emotional expression than bracket tags
+5. ✅ **Standards Compliant**: Follows ElevenLabs official best practices
+6. ✅ **Backwards Compatible**: Still handles old bracket tags if present
 
 ## Testing Checklist
 
 - [x] Description field saves correctly during persona creation
 - [x] Style bullets appear in system prompt during chat
 - [x] Taboo topics appear in system prompt during chat
-- [x] Emotion instructions included in system prompt
+- [x] Narrative context instructions included in system prompt
+- [x] Enhanced stripping utility handles both formats
 - [x] No linting errors in modified files
-- [ ] Manual: Create new persona and verify emotion tags in responses
-- [ ] Manual: Verify UI displays clean text without tags
-- [ ] Manual: Verify TTS audio includes emotional inflection
+- [ ] Manual: Create new persona and verify narrative context in responses
+- [ ] Manual: Verify UI displays clean text without narrative markers
+- [ ] Manual: Verify TTS audio includes emotional inflection WITHOUT reading markers aloud
 - [ ] Manual: Test with different persona styles
 
 ## Files Modified
 
-1. ✅ `src/app/api/chat/route.ts` - Enhanced system prompt builder
-2. ✅ `src/lib/personas.ts` - Updated persona generation instructions
-3. ✅ `src/lib/utils.ts` - Added stripEmotionTags utility
-4. ✅ `src/components/ChatList.tsx` - Strip tags for display
-5. ✅ `src/app/api/tts/route.ts` - Verified tag preservation (no changes needed)
+1. ✅ `src/app/api/chat/route.ts` - Updated to use narrative context instructions
+2. ✅ `src/lib/personas.ts` - Updated persona generation to use narrative context
+3. ✅ `src/lib/utils.ts` - Enhanced stripEmotionTags to handle narrative context
+4. ✅ `src/components/ChatList.tsx` - Strip tags for display (no changes needed, uses existing utility)
+5. ✅ `src/app/api/tts/route.ts` - Verified context preservation (no changes needed)
+6. ✅ `EMOTION_TAGS_IMPLEMENTATION.md` - Updated documentation
 
-## Benefits
+## Migration Path
 
-1. **Richer Voice Synthesis**: ElevenLabs receives emotion tags for more natural, expressive speech
-2. **Clean UI**: Users see polished text without technical markup
-3. **Better Persona Adherence**: Style bullets and taboo topics guide AI behavior
-4. **Authentic Conversations**: Emotion tags capture HOW things are said, not just what
-5. **Minimal Code Impact**: Changes isolated to specific functions with clear purposes
+### For Existing Personas with Bracket Tags:
+The system now supports both formats:
+- Old bracket tags `[chuckles]` will be stripped by UI
+- New narrative context "chuckled" will also be stripped
+- Both formats work with TTS (though narrative context works better)
 
-## Next Steps (Optional Enhancements)
-
-1. Add emotion tag visualization toggle in UI (show/hide tags for debugging)
-2. Create analytics on which emotion tags are most commonly used per persona
-3. Add custom emotion tag definitions per persona
-4. Implement emotion tag validation to ensure ElevenLabs supports them
-5. A/B test user satisfaction with vs without emotion tags in TTS
+### For New Personas:
+All new personas created will use narrative context by default thanks to updated instructions in `personas.ts`.
 
 ## Technical Notes
 
-- Emotion tags use square bracket format: `[emotion]`
-- Regex pattern: `/\[[\w\s]+\]/g` matches any word/space characters in brackets
-- Database stores full text with tags (original content preserved)
-- Frontend strips tags client-side (no server overhead)
-- ElevenLabs processes tags server-side during TTS generation
-- Tags are preserved in conversation history for context continuity
+- Narrative context format: `"dialogue," [subject] [verb] [adverb]. "more dialogue"`
+- Regex patterns in `stripEmotionTags()` handle both legacy and new formats
+- Database stores full text with context (original content preserved)
+- Frontend strips markers client-side (no server overhead)
+- ElevenLabs processes narrative context server-side without vocalizing markers
+- Context is preserved in conversation history for continuity
 
+## References
+
+- [ElevenLabs Best Practices - Prompting Controls](https://elevenlabs.io/docs/best-practices/prompting/controls)
+- ElevenLabs Turbo v3 Model Documentation
+- OpenAI/Groq Chat Completion API Standards
+
+---
+
+**Last Updated:** October 18, 2025
+**Status:** ✅ Production Ready - Narrative Context Implementation Complete

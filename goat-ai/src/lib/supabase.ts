@@ -30,6 +30,7 @@ export interface Persona {
   }>
   avatar_url?: string
   voice_id?: string
+  suggested_questions?: string[]
   created_at: string
 }
 

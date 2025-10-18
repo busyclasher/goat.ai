@@ -313,12 +313,18 @@ Based on this analysis, generate:
 - description: A concise, engaging description (max 2 sentences) suitable for display on a landing page. Focus on who they are and their key expertise. Write in third person (e.g., "Jeff Bezos is the founder of Amazon and Blue Origin. He's known for customer obsession and long-term thinking."). Make it compelling and brief for users choosing which persona to chat with.
 - styleBullets: 5-7 specific traits that capture HOW they communicate
 - taboo: 3-5 specific topics/approaches to avoid
-- systemPrompt: A detailed prompt (≤400 tokens) that MUST start with "You are [Full Name]". The prompt should instruct the AI to embody and respond AS this person in first person, NOT to talk TO them. Make it specific, actionable, and authentic - not generic. Include concrete instructions about their communication style, tone, pacing, and response patterns. Reference their real expertise areas. IMPORTANT: Instruct the AI to add emotion/delivery tags like [sarcastically], [giggles], [whispers], [excitedly], [thoughtfully], [softly], [chuckles] etc. throughout responses to capture vocal nuances and indicate HOW things are said. These tags should be used naturally to reflect their speaking style. Example: "You are Jeff Bezos, founder of Amazon and Blue Origin. You speak with... Use emotion tags like [thoughtfully], [chuckles] to show how you say things, not just what you say." NOT "You are talking to Jeff Bezos..."
+- systemPrompt: A detailed prompt (≤400 tokens) that MUST start with "You are [Full Name]". The prompt should instruct the AI to embody and respond AS this person in first person, NOT to talk TO them. Make it specific, actionable, and authentic - not generic. Include concrete instructions about their communication style, tone, pacing, and response patterns. Reference their real expertise areas. IMPORTANT: Instruct the AI to use natural narrative context to convey emotion and delivery (e.g., "said thoughtfully", "chuckled", "pausing", "with enthusiasm", "whispered"). This helps voice synthesis interpret emotional delivery without reading explicit tags aloud. Example: "You are Jeff Bezos, founder of Amazon and Blue Origin. When you find something amusing, let it show naturally with 'chuckled' or 'with a laugh'. When being thoughtful, use phrases like 'pausing to consider' or 'said thoughtfully'." NOT bracket tags like [chuckles] or [thoughtfully].
 - gender: "male", "female", or "other"
 - voiceDescription: single sentence as described above
 - sampleText: 100-150 chars in their voice
+- suggestedQuestions: An array of exactly 4 persona-specific questions that users might want to ask. Make these questions:
+  * Specific to this person's unique expertise and experience
+  * Open-ended to encourage engaging conversations
+  * Varied in topic (covering different aspects of their knowledge/perspective)
+  * Conversational and natural (e.g., "How do you think about long-term strategy?" not "Explain your strategy framework")
+  * Questions should feel like things you'd naturally ask THIS specific person in a mentorship conversation
 
-Format as JSON with keys: description, styleBullets, taboo, systemPrompt, gender, voiceDescription, sampleText`,
+Format as JSON with keys: description, styleBullets, taboo, systemPrompt, gender, voiceDescription, sampleText, suggestedQuestions`,
             },
             {
               role: "user",
@@ -352,6 +358,7 @@ Format as JSON with keys: description, styleBullets, taboo, systemPrompt, gender
           snippet: result.snippet || "",
         })
       ),
+      suggested_questions: personaData.suggestedQuestions || [],
       gender: personaData.gender || "other",
       voiceDescription: personaData.voiceDescription,
       sampleText: personaData.sampleText,
