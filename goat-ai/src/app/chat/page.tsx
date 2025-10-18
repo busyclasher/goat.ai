@@ -61,7 +61,7 @@ function ChatPageContent() {
   // Create conversation when persona is ready
   useEffect(() => {
     const createNewConversation = async () => {
-      if (persona) { // simplified condition
+      if (persona && !conversationId) { // Check for existing conversation
         try {
           const newConversation = await createConversation(persona.id);
           if (newConversation) {
@@ -76,7 +76,7 @@ function ChatPageContent() {
     };
 
     createNewConversation();
-  }, [persona]); // Depend on persona
+  }, [persona, conversationId]); // Add conversationId to dependencies
 
   // Load conversation and set up real-time subscription
   useEffect(() => {
