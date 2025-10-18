@@ -27,6 +27,7 @@ export interface Persona {
     url: string
     snippet: string
   }>
+  voice_id?: string
   created_at: string
 }
 
@@ -45,5 +46,7 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   audio_url?: string
+  persona_id?: string
+  persona?: Persona
   created_at: string
 }

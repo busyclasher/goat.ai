@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface ComposerProps {
   onSend: (message: string) => void;
-  onPersonaSwitch: (slug: string) => void;
+  onPersonaSwitch: (slug: string, remainingMessage?: string) => Promise<void>;
   disabled?: boolean;
   className?: string;
 }
@@ -26,18 +26,21 @@ export function Composer({
     e.preventDefault();
     if (!message.trim() || isSending || disabled) return;
 
-    // Check for persona switch
-    const personaMatch = message.match(/^@(\w+)\s+(.*)/);
+    // Check for persona switch - detect @mention anywhere in message
+    const personaMatch = message.match(/@(\w+)(?:\s+(.*))?/);
     if (personaMatch) {
-      const [, slug, remainingMessage] = personaMatch;
-      onPersonaSwitch(slug);
-      if (remainingMessage.trim()) {
-        setMessage(remainingMessage);
-        return;
-      } else {
+      const [fullMatch, slug, remainingMessage] = personaMatch;
+      
+      setIsSending(true);
+      try {
+        await onPersonaSwitch(slug, remainingMessage?.trim());
         setMessage("");
-        return;
+      } catch (error) {
+        console.error("Error switching persona:", error);
+      } finally {
+        setIsSending(false);
       }
+      return;
     }
 
     setIsSending(true);

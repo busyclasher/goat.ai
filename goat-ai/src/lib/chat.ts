@@ -11,7 +11,7 @@ export async function getConversation(conversationId: string): Promise<(Conversa
     return demoConversations.get(conversationId) || null
   }
 
-  // Real mode: use Supabase
+  // Real mode: use Supabase with persona data joined
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')
     .select('*')
@@ -23,9 +23,13 @@ export async function getConversation(conversationId: string): Promise<(Conversa
     return null
   }
 
+  // Fetch messages with joined persona data
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
-    .select('*')
+    .select(`
+      *,
+      persona:personas(*)
+    `)
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
@@ -85,7 +89,7 @@ export async function createConversation(
   }
 }
 
-export async function sendMessage(conversationId: string, content: string, audioUrl?: string): Promise<boolean> {
+export async function sendMessage(conversationId: string, content: string, audioUrl?: string, personaId?: string): Promise<boolean> {
   const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
   
   // Demo mode: add to in-memory conversation
@@ -98,6 +102,7 @@ export async function sendMessage(conversationId: string, content: string, audio
         role: 'user',
         content,
         audio_url: audioUrl,
+        persona_id: personaId,
         created_at: new Date().toISOString()
       }
       conversation.messages.push(newMessage)
@@ -112,7 +117,7 @@ export async function sendMessage(conversationId: string, content: string, audio
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ conversationId, role: 'user', content, audioUrl }),
+      body: JSON.stringify({ conversationId, role: 'user', content, audioUrl, personaId }),
     });
 
     return response.ok;
@@ -122,7 +127,7 @@ export async function sendMessage(conversationId: string, content: string, audio
   }
 }
 
-export async function addAssistantMessage(conversationId: string, content: string, audioUrl?: string): Promise<boolean> {
+export async function addAssistantMessage(conversationId: string, content: string, audioUrl?: string, personaId?: string): Promise<boolean> {
   const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
   
   // Demo mode: add to in-memory conversation
@@ -135,6 +140,7 @@ export async function addAssistantMessage(conversationId: string, content: strin
         role: 'assistant',
         content,
         audio_url: audioUrl,
+        persona_id: personaId,
         created_at: new Date().toISOString()
       }
       conversation.messages.push(newMessage)
@@ -148,7 +154,7 @@ export async function addAssistantMessage(conversationId: string, content: strin
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ conversationId, role: 'assistant', content, audioUrl }),
+      body: JSON.stringify({ conversationId, role: 'assistant', content, audioUrl, personaId }),
     });
 
     return response.ok;

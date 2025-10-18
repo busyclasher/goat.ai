@@ -150,10 +150,20 @@ Gated with `NEXT_PUBLIC_DEMO_MODE=true`. Returns canned responses from chat API.
 **Files:** `/app/chat/page.tsx`, `/components/MicButton.tsx`  
 **Success:** Console logs show per-component timing, total <5s for happy path
 
-### Real-time Message Updates (HIGH PRIORITY)
+### ✅ Real-time Message Updates (COMPLETED)
 **Target:** Live message sync without manual refresh
 
-"Implement Supabase real-time subscriptions in chat page. On mount, subscribe to `messages` table where `conversation_id = current`. On insert event, update local state with new message. Auto-scroll to latest. Clean up subscription on unmount. Remove manual `getConversation()` refresh after sending."
+**Status:** ✅ Implemented Oct 18, 2025
+
+Implementation:
+- Added Supabase real-time channel subscription in `useEffect` in chat page
+- Subscribes to `postgres_changes` on messages table filtered by `conversation_id`
+- Fetches full message with joined persona data on INSERT event
+- Updates local conversation state with new message
+- Cleanup function removes channel subscription on unmount
+- Removed manual `getConversation()` refresh calls from `handleSendMessage`
+- Auto-scroll already working via ChatList's `useEffect` on messages
+- Created migration `0005_enable_realtime.sql` to enable realtime publication
 
 **Files:** `/app/chat/page.tsx`, `/lib/chat.ts`  
 **Success:** New messages appear instantly without page refresh
@@ -166,13 +176,21 @@ Gated with `NEXT_PUBLIC_DEMO_MODE=true`. Returns canned responses from chat API.
 **Files:** `/app/api/switch/route.ts`, `/app/chat/page.tsx`  
 **Success:** Persona switches within same conversation, maintains message history
 
-### Voice Mapping per Persona (MEDIUM PRIORITY)
+### Voice Mapping per Persona ✅ COMPLETED
 **Target:** Persona-specific voices (especially Sherry)
 
-"Add `voice_id` column to `personas` table (varchar 100, nullable). Update seed data with ElevenLabs voice IDs (Sherry's voice_id for 'sherry' persona, generic for others). Update `/api/tts` to accept persona object, use `persona.voice_id || DEFAULT_VOICE_ID`. Test with at least one custom cloned voice."
+Infrastructure complete. Added `voice_id` column to `personas` table, updated TTS API to use persona-specific voices, and created helper scripts. Ready to configure Sherry's actual voice ID.
 
-**Files:** `supabase/schema.sql`, `supabase/seed.sql`, `/app/api/tts/route.ts`, `/app/chat/page.tsx`  
-**Success:** Different personas produce audio in different voices
+**Files Modified:** 
+- `supabase/migrations/0002_add_voice_id.sql` - Migration to add voice_id column
+- `supabase/migrations/0003_update_sherry_voice.sql` - Seed Sherry's persona
+- `src/lib/supabase.ts` - Updated Persona type
+- `src/app/api/tts/route.ts` - Accept voiceId parameter
+- `src/app/chat/page.tsx` - Pass voice_id to TTS
+- `scripts/update-voice-id.js` - Helper script to update voice IDs
+- `docs/VOICE_MAPPING_SETUP.md` - Complete setup guide
+
+**Success:** ✅ Infrastructure ready. Pending: Get Sherry's ElevenLabs voice ID
 
 ### Demo Preparation & Testing (HIGH PRIORITY)
 **Target:** Fresh laptop setup validation

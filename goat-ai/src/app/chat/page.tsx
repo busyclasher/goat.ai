@@ -67,26 +67,112 @@ function ChatPageContent() {
     createNewConversation();
   }, [persona, conversationId]);
 
-  // Load conversation when conversationId changes
+  // Load conversation and set up real-time subscription
   useEffect(() => {
+    if (!conversationId) return;
+
+    // Initial load
     const loadConversation = async () => {
-      if (conversationId) {
-        try {
-          const conversationData = await getConversation(conversationId);
-          setConversation(conversationData);
-        } catch (err) {
-          console.error("Error loading conversation:", err);
-        }
+      try {
+        const conversationData = await getConversation(conversationId);
+        setConversation(conversationData);
+      } catch (err) {
+        console.error("Error loading conversation:", err);
       }
     };
 
     loadConversation();
+
+    // Skip real-time in demo mode
+    const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (demoMode) return;
+
+    // Set up real-time subscription for new messages
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { supabase } = require("@/lib/supabase");
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        async (payload: { new: { id: string } }) => {
+          console.log('New message received:', payload.new);
+          
+          // Fetch the complete message with persona data
+          const { data: newMessage } = await supabase
+            .from('messages')
+            .select(`
+              *,
+              persona:personas(*)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (newMessage) {
+            setConversation((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                messages: [...prev.messages, newMessage]
+              };
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [conversationId]);
 
-  const handlePersonaSwitch = async (slug: string) => {
-    setCurrentPersonaSlug(slug);
-    setConversationId(null);
-    setError(null);
+  const handlePersonaSwitch = async (slug: string, remainingMessage?: string) => {
+    if (!conversationId) {
+      setToast({ message: "No active conversation", type: "error" });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Call the persona switch API
+      const response = await fetch('/api/persona/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          newPersonaSlug: slug,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to switch persona');
+      }
+
+      const { persona: newPersona } = await response.json();
+      
+      // Update local state with new persona
+      setPersona(newPersona);
+      setCurrentPersonaSlug(slug);
+      setToast({ message: `Switched to ${newPersona.name}`, type: "success" });
+
+      // If there's a remaining message, send it with the new persona
+      if (remainingMessage?.trim()) {
+        await handleSendMessage(remainingMessage);
+      }
+    } catch (err) {
+      console.error("Error switching persona:", err);
+      setToast({ message: "Failed to switch persona", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (content: string) => {
@@ -94,22 +180,33 @@ function ChatPageContent() {
 
     try {
       setError(null);
+      const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+      
+      // Send user message (no persona_id for user messages)
       await sendMessage(conversationId, content);
+
+      // In demo mode, manually update the conversation state
+      if (demoMode) {
+        const updatedConversation = await getConversation(conversationId);
+        setConversation(updatedConversation);
+      }
 
       // Generate AI response
       const response = await generateAIResponse(content, persona);
-      await addAssistantMessage(conversationId, response.text, response.audioUrl);
-      
-      // Refresh conversation to show new messages
-      const updatedConversation = await getConversation(conversationId);
-      setConversation(updatedConversation);
+      await addAssistantMessage(conversationId, response.text, response.audioUrl, persona.id);
+
+      // In demo mode, manually update the conversation state again
+      if (demoMode) {
+        const updatedConversation = await getConversation(conversationId);
+        setConversation(updatedConversation);
+      }
     } catch (err) {
       console.error("Error sending message:", err);
       setToast({ message: "Failed to send message", type: "error" });
     }
   };
 
-  const generateAIResponse = async (userMessage: string, persona: any) => {
+  const generateAIResponse = async (userMessage: string, persona: Persona) => {
     const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
     
     if (demoMode) {
@@ -126,14 +223,26 @@ function ChatPageContent() {
       
       // Generate audio for demo
       try {
+        console.log('Generating TTS with voice_id:', persona.voice_id);
         const ttsResponse = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: randomResponse })
+          body: JSON.stringify({ 
+            text: randomResponse,
+            voiceId: persona.voice_id
+          })
         });
+        
+        if (!ttsResponse.ok) {
+          console.error('TTS API error:', ttsResponse.status);
+          return { text: randomResponse };
+        }
+        
         const ttsData = await ttsResponse.json();
+        console.log('TTS generated, audioUrl length:', ttsData.audioUrl?.length || 0);
         return { text: randomResponse, audioUrl: ttsData.audioUrl };
-      } catch {
+      } catch (error) {
+        console.error('Error generating TTS:', error);
         return { text: randomResponse };
       }
     }
@@ -158,14 +267,26 @@ function ChatPageContent() {
       
       // Generate audio
       try {
+        console.log('Generating TTS for real mode with voice_id:', persona.voice_id);
         const ttsResponse = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
+          body: JSON.stringify({ 
+            text,
+            voiceId: persona.voice_id
+          })
         });
+        
+        if (!ttsResponse.ok) {
+          console.error('TTS API error:', ttsResponse.status);
+          return { text };
+        }
+        
         const ttsData = await ttsResponse.json();
+        console.log('TTS generated, audioUrl length:', ttsData.audioUrl?.length || 0);
         return { text, audioUrl: ttsData.audioUrl };
-      } catch {
+      } catch (error) {
+        console.error('Error generating TTS:', error);
         return { text };
       }
     } catch (error) {
@@ -232,23 +353,6 @@ function ChatPageContent() {
             <h1 className="font-semibold text-gray-900">{persona.name}</h1>
             <p className="text-sm text-gray-500">@{persona.slug}</p>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="@persona"
-            className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const value = e.currentTarget.value.trim();
-                if (value.startsWith('@')) {
-                  handlePersonaSwitch(value.slice(1));
-                  e.currentTarget.value = '';
-                }
-              }
-            }}
-          />
         </div>
       </div>
 

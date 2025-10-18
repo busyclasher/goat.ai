@@ -6,6 +6,14 @@ import { MessageSquare, Sparkles } from "lucide-react";
 
 const personas = [
   {
+    slug: "sherry-jiang",
+    name: "Sherry Jiang",
+    title: "Startup Founder & AI Enthusiast",
+    avatar: "S",
+    color: "bg-pink-500",
+    description: "Real advice from a founder building in public"
+  },
+  {
     slug: "warrenbuffett",
     name: "Warren Buffett",
     title: "Investment Wisdom & Long-term Thinking",
@@ -25,7 +33,7 @@ const personas = [
     slug: "stevejobs",
     name: "Steve Jobs",
     title: "Design Excellence & User Experience",
-    avatar: "S",
+    avatar: "J",
     color: "bg-gray-700",
     description: "Explore product design and creative thinking"
   },

@@ -63,9 +63,9 @@ export async function POST(req: Request) {
           content: text,
         },
       ],
-      model: "llama-3.1-70b-versatile",
-      temperature: 0.6,
-      max_tokens: 150,
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      temperature: 0.7,
+      max_tokens: 500,
     });
 
     const assistantText = groqResponse.choices[0].message.content;
@@ -83,15 +83,11 @@ export async function POST(req: Request) {
 
     // 4. Return { text }
     return NextResponse.json({ text: assistantText });
-  } catch (error: any) {
-    console.error("Caught error in /api/chat route:", {
-      message: error.message,
-      stack: error.stack,
-      details: error.details, // PostgREST errors often have details here
-      fullError: JSON.stringify(error, null, 2),
-    });
+  } catch (error) {
+    console.error("Caught error in /api/chat route:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { text: "Let’s circle back to that later." },
+      { text: "Let's circle back to that later.", error: errorMessage },
       { status: 500 }
     );
   }

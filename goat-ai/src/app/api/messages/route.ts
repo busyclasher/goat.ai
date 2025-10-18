@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    const { conversationId, role, content, audioUrl } = await req.json();
+    const { conversationId, role, content, audioUrl, personaId } = await req.json();
 
     if (!conversationId || !role || !content) {
       return NextResponse.json(
@@ -12,13 +12,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Insert the new message
-    const { error: messageError } = await supabase.from("messages").insert({
+    // 1. Insert the new message with optional persona_id
+    const messageData: {
+      conversation_id: string;
+      role: string;
+      content: string;
+      audio_url?: string;
+      persona_id?: string;
+    } = {
       conversation_id: conversationId,
       role,
-      text: content, // Renamed 'content' to 'text' to match the live DB schema
+      content, // Database schema uses 'content' column
       audio_url: audioUrl,
-    });
+    };
+
+    // Only add persona_id if provided (typically for assistant messages)
+    if (personaId) {
+      messageData.persona_id = personaId;
+    }
+
+    const { error: messageError } = await supabase.from("messages").insert(messageData);
 
     if (messageError) {
       console.error("Error inserting message:", messageError);
@@ -40,7 +53,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

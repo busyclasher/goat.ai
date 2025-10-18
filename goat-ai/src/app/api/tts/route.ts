@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceStyleId } = await request.json();
+    const { text, voiceStyleId, voiceId } = await request.json();
     
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ElevenLabs API key not configured" }, { status: 500 });
     }
 
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceStyleId || "21m00Tcm4TlvDq8ikWAM"}`, {
+    // Use voiceId (from persona), then voiceStyleId (legacy), then default voice
+    const selectedVoiceId = voiceId || voiceStyleId || "21m00Tcm4TlvDq8ikWAM";
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, {
       method: "POST",
       headers: {
         "Accept": "audio/mpeg",

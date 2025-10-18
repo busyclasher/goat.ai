@@ -136,9 +136,12 @@ export async function buildPersona(slug: string, name?: string, query?: string):
   }
 }
 
-async function buildPersonaFromExa(slug: string, name?: string, query: string): Promise<Omit<Persona, 'id' | 'created_at'>> {
+async function buildPersonaFromExa(slug: string, name?: string, query?: string): Promise<Omit<Persona, 'id' | 'created_at'>> {
   const exaApiKey = process.env.EXA_API_KEY
   const groqApiKey = process.env.GROQ_API_KEY
+  
+  // Use slug as default query if not provided
+  const searchQuery = query || slug
 
   if (!exaApiKey || !groqApiKey) {
     throw new Error('Missing API keys')
@@ -153,7 +156,7 @@ async function buildPersonaFromExa(slug: string, name?: string, query: string): 
         'x-api-key': exaApiKey,
       },
       body: JSON.stringify({
-        query,
+        query: searchQuery,
         numResults: 10,
         type: 'snippet',
         useAutoprompt: true,
@@ -172,7 +175,7 @@ async function buildPersonaFromExa(slug: string, name?: string, query: string): 
 
     // Extract snippets and compact to 1200 chars
     const snippets = searchData.results
-      .map((result: any) => result.snippet)
+      .map((result: { snippet: string }) => result.snippet)
       .join(' ')
       .substring(0, 1200)
 
@@ -218,7 +221,7 @@ Format as JSON with keys: styleBullets, taboo, systemPrompt`
       style_bullets: personaData.styleBullets || [],
       taboo: personaData.taboo || [],
       system_prompt: personaData.systemPrompt || 'You are a helpful assistant.',
-      sources: searchData.results.map((result: any) => ({
+      sources: searchData.results.map((result: { title?: string; url?: string; snippet?: string }) => ({
         title: result.title || 'Untitled',
         url: result.url || '',
         snippet: result.snippet || '',
