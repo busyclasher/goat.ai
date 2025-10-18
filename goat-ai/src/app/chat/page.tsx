@@ -292,6 +292,62 @@ function ChatPageContent() {
       return { text: "I'm sorry, I'm having trouble processing that right now." };
     }
   }, []);
+
+  const handleVoiceMessage = useCallback(async (text: string): Promise<{ text: string; audioUrl?: string }> => {
+    if (!conversationId || !persona) {
+      throw new Error("No active conversation");
+    }
+
+    try {
+      setError(null);
+      setIsReplying(true);
+      const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+      
+      // Send user message (no persona_id for user messages)
+      await sendMessage(conversationId, text);
+
+      // In demo mode, manually update the conversation state
+      if (demoMode) {
+        const updatedConversation = await getConversation(conversationId);
+        setConversation(updatedConversation);
+      }
+
+      // Generate AI response
+      const response = await generateAIResponse(text, persona, conversationId);
+
+      // Hide indicator before showing the message
+      setIsReplying(false);
+
+      const newMessage = await addAssistantMessage(conversationId, response.text, response.audioUrl, persona.id);
+
+      // Optimistically update the conversation state
+      if (newMessage) {
+        setConversation(prev => {
+          if (!prev) return null;
+          // Ensure no duplicates from real-time subscription
+          if (prev.messages.some(msg => msg.id === newMessage.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            messages: [...prev.messages, newMessage]
+          };
+        });
+      }
+
+      // In demo mode, manually update the conversation state again
+      if (demoMode) {
+        const updatedConversation = await getConversation(conversationId);
+        setConversation(updatedConversation);
+      }
+
+      return response;
+    } catch (err) {
+      console.error("Error sending voice message:", err);
+      setIsReplying(false);
+      throw err;
+    }
+  }, [conversationId, persona, generateAIResponse]);
   
   const handleSendMessage = useCallback(async (content: string, convId?: string, personaOverride?: Persona) => {
     if (window.currentlyPlayingAudio) {
@@ -482,6 +538,8 @@ function ChatPageContent() {
           onPersonaSwitch={handlePersonaSwitch}
           disabled={!conversationId}
           personas={personas}
+          currentPersona={persona}
+          onVoiceMessage={handleVoiceMessage}
         />
       </footer>
 

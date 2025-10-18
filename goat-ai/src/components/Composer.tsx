@@ -14,6 +14,9 @@ interface ComposerProps {
   disabled?: boolean;
   className?: string;
   personas: Persona[];
+  // Voice mode props
+  currentPersona?: Persona;
+  onVoiceMessage?: (text: string) => Promise<{ text: string; audioUrl?: string }>;
 }
 
 export function Composer({ 
@@ -21,7 +24,9 @@ export function Composer({
   onPersonaSwitch, 
   disabled = false,
   className,
-  personas
+  personas,
+  currentPersona,
+  onVoiceMessage,
 }: ComposerProps) {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -148,6 +153,11 @@ export function Composer({
                 onTranscription={handleTranscription}
                 onError={handleError}
                 disabled={disabled || isSending}
+                persistentVoiceMode={!!onVoiceMessage}
+                personaAvatar={currentPersona?.avatar_url}
+                personaName={currentPersona?.name}
+                personaVoiceId={currentPersona?.voice_id}
+                onVoiceMessage={onVoiceMessage}
             />
             <button
                 type="submit"

@@ -3,25 +3,35 @@
 import { useState, useRef, useCallback } from "react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RecordingModal } from "./RecordingModal";
+import { VoiceInteractionModal } from "./VoiceInteractionModal";
 
 interface MicButtonProps {
   onTranscription: (text: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
   className?: string;
+  // Voice mode props
+  persistentVoiceMode?: boolean;
+  personaAvatar?: string;
+  personaName?: string;
+  personaVoiceId?: string;
+  onVoiceMessage?: (text: string) => Promise<{ text: string; audioUrl?: string }>;
 }
 
 export function MicButton({ 
   onTranscription, 
   onError, 
   disabled = false,
-  className 
+  className,
+  persistentVoiceMode = false,
+  personaAvatar,
+  personaName = "AI",
+  personaVoiceId = "21m00Tcm4TlvDq8ikWAM",
+  onVoiceMessage,
 }: MicButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -58,7 +68,6 @@ export function MicButton({
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMediaStream(stream);
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
@@ -80,18 +89,15 @@ export function MicButton({
         if (audioBlob.size < 1000) { // Add a minimum size check (1KB)
             onError("Recording too short. Please try again.");
             stream.getTracks().forEach(track => track.stop());
-            setMediaStream(null);
             return;
         }
 
         await processAudio(audioBlob);
         stream.getTracks().forEach(track => track.stop());
-        setMediaStream(null);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      setShowModal(true);
     } catch (error) {
       console.error("Error starting recording:", error);
       onError("Failed to access microphone. Please check permissions.");
@@ -102,16 +108,25 @@ export function MicButton({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setShowModal(false);
     }
   }, [isRecording]);
 
   const handleClick = () => {
-    if (isRecording) {
-      stopRecording();
+    if (persistentVoiceMode) {
+      // Open persistent voice modal
+      setShowVoiceModal(true);
     } else {
-      startRecording();
+      // Use single-shot recording mode
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
     }
+  };
+
+  const handleVoiceModalClose = () => {
+    setShowVoiceModal(false);
   };
 
   return (
@@ -138,12 +153,16 @@ export function MicButton({
         )}
       </button>
 
-      <RecordingModal
-        isOpen={showModal}
-        onClose={stopRecording}
-        mediaStream={mediaStream}
-        isProcessing={isProcessing}
-      />
+      {persistentVoiceMode && onVoiceMessage && (
+        <VoiceInteractionModal
+          isOpen={showVoiceModal}
+          onClose={handleVoiceModalClose}
+          personaAvatar={personaAvatar}
+          personaName={personaName}
+          personaVoiceId={personaVoiceId}
+          onMessage={onVoiceMessage}
+        />
+      )}
     </>
   );
 }
