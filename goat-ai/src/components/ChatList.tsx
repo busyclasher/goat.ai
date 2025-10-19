@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Copy, Check } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";

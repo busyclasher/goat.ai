@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { X, Loader2, Check, AlertCircle } from "lucide-react";
+import type { Persona } from "@/lib/supabase";
 
 interface CreatePersonaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (persona: any) => void;
+  onSuccess: (persona: Persona) => void;
 }
 
 export default function CreatePersonaModal({
@@ -20,7 +21,11 @@ export default function CreatePersonaModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [responseData, setResponseData] = useState<any>(null);
+  const [responseData, setResponseData] = useState<{
+    customVoice?: boolean;
+    voiceDescription?: string;
+    persona: Persona;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,8 +75,12 @@ export default function CreatePersonaModal({
         onSuccess(data.persona);
         handleClose();
       }, 1500);
-    } catch (err: any) {
-      setError(err.message || "Failed to create persona. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to create persona. Please try again.");
+      } else {
+        setError("An unknown error occurred. Please try again.");
+      }
       setIsLoading(false);
     }
   };
@@ -121,7 +130,7 @@ export default function CreatePersonaModal({
               htmlFor="name"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Person's Name <span className="text-red-500">*</span>
+              Person&apos;s Name <span className="text-red-500">*</span>
             </label>
             <input
               id="name"
@@ -229,7 +238,7 @@ export default function CreatePersonaModal({
         {/* Info */}
         {!error && !success && !isLoading && (
           <p className="text-xs text-gray-500 text-center mt-4">
-            We'll use Exa.ai to research and create a custom AI persona with
+            We&apos;ll use Exa.ai to research and create a custom AI persona with
             unique voice
           </p>
         )}
