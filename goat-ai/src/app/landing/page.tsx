@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { MessageSquare, Sparkles, Plus, Zap } from "lucide-react";
+import { MessageSquare, Sparkles, Plus, Zap, HelpCircle } from "lucide-react";
 import CreatePersonaModal from "@/components/CreatePersonaModal";
 import { listPersonas } from "@/lib/personas";
 import type { Persona } from "@/lib/supabase";
@@ -26,6 +26,25 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+// Helper function to transform persona display for landing page only
+// Sherry appears as "Mystery Guest" on landing, but normal in chat
+function getPersonaDisplayData(persona: Persona) {
+  if (persona.slug === 'sherryjiang') {
+    return {
+      name: 'Mystery Guest',
+      description: 'A random face that might be familiar?',
+      avatar_url: null, // Will trigger question mark icon
+      isMystery: true
+    };
+  }
+  return {
+    name: persona.name,
+    description: persona.description || persona.system_prompt,
+    avatar_url: persona.avatar_url,
+    isMystery: false
+  };
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -40,8 +59,8 @@ export default function LandingPage() {
   const fetchPersonas = async () => {
     const fetchedPersonas = await listPersonas();
     
-    // Define the desired order of persona slugs
-    const desiredOrder = ['sherryjiang', 'warrenbuffett', 'elonmusk', 'morganfreeman', 'mentor'];
+    // Define the desired order of persona slugs (sherryjiang last as "Mystery Guest")
+    const desiredOrder = ['warrenbuffett', 'elonmusk', 'morganfreeman', 'mentor', 'sherryjiang'];
 
     // Sort the fetched personas
     const sortedPersonas = fetchedPersonas.sort((a, b) => {
@@ -124,29 +143,35 @@ export default function LandingPage() {
         )}
 
         {/* Featured Persona */}
-        {selectedPersona && (
-          <div className="text-center mb-12">
-            {selectedPersona.avatar_url ? (
-              <div className="inline-block w-32 h-32 rounded-full overflow-hidden mb-6 shadow-xl">
-                <Image
-                  src={selectedPersona.avatar_url}
-                  alt={selectedPersona.name}
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-5xl font-bold mb-6 shadow-xl">
-                {getInitials(selectedPersona.name)}
-              </div>
-            )}
-            <h2 className="text-4xl font-bold text-gray-900 mb-2">
-              {selectedPersona.name}
-            </h2>
-            <p className="text-xl text-gray-600 mb-4">
-              {selectedPersona.description || selectedPersona.system_prompt}
-            </p>
+        {selectedPersona && (() => {
+          const displayData = getPersonaDisplayData(selectedPersona);
+          return (
+            <div className="text-center mb-12">
+              {displayData.isMystery ? (
+                <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 text-white mb-6 shadow-xl">
+                  <HelpCircle className="w-16 h-16" />
+                </div>
+              ) : displayData.avatar_url ? (
+                <div className="inline-block w-32 h-32 rounded-full overflow-hidden mb-6 shadow-xl">
+                  <Image
+                    src={displayData.avatar_url}
+                    alt={displayData.name}
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-5xl font-bold mb-6 shadow-xl">
+                  {getInitials(displayData.name)}
+                </div>
+              )}
+              <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                {displayData.name}
+              </h2>
+              <p className="text-xl text-gray-600 mb-4">
+                {displayData.description}
+              </p>
             
             {/* Action Buttons */}
             <div className="flex items-center justify-center gap-4">
@@ -158,8 +183,9 @@ export default function LandingPage() {
                 Start Chat
               </button>
             </div>
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* Suggested Questions */}
         <div className="mb-12">
@@ -190,40 +216,47 @@ export default function LandingPage() {
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* Existing Personas */}
-            {personas.map((persona) => (
-              <div
-                key={persona.slug}
-                onClick={() => setSelectedPersona(persona)}
-                onDoubleClick={() => handleStartChat(persona.slug)}
-                className={`p-6 rounded-xl border-2 transition-all cursor-pointer ${
-                  selectedPersona?.slug === persona.slug
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                {persona.avatar_url ? (
-                  <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-3">
-                    <Image
-                      src={persona.avatar_url}
-                      alt={persona.name}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-blue-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3">
-                    {getInitials(persona.name)}
-                  </div>
-                )}
-                <h4 className="font-semibold text-gray-900 text-center mb-1">
-                  {persona.name}
-                </h4>
-                <p className="text-xs text-gray-500 text-center line-clamp-2">
-                  {persona.description || persona.system_prompt}
-                </p>
-              </div>
-            ))}
+            {personas.map((persona) => {
+              const displayData = getPersonaDisplayData(persona);
+              return (
+                <div
+                  key={persona.slug}
+                  onClick={() => setSelectedPersona(persona)}
+                  onDoubleClick={() => handleStartChat(persona.slug)}
+                  className={`p-6 rounded-xl border-2 transition-all cursor-pointer ${
+                    selectedPersona?.slug === persona.slug
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  {displayData.isMystery ? (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 text-white flex items-center justify-center mx-auto mb-3">
+                      <HelpCircle className="w-8 h-8" />
+                    </div>
+                  ) : displayData.avatar_url ? (
+                    <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-3">
+                      <Image
+                        src={displayData.avatar_url}
+                        alt={displayData.name}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-blue-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3">
+                      {getInitials(displayData.name)}
+                    </div>
+                  )}
+                  <h4 className="font-semibold text-gray-900 text-center mb-1">
+                    {displayData.name}
+                  </h4>
+                  <p className="text-xs text-gray-500 text-center line-clamp-2">
+                    {displayData.description}
+                  </p>
+                </div>
+              );
+            })}
 
             {/* Create New Persona Card */}
             <button

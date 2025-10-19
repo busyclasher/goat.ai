@@ -150,8 +150,8 @@ export default function CreatePersonaModal({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-black"
               disabled={isLoading || success}
             >
-              <option value="male">Male (Default Voice)</option>
-              <option value="female">Female (Sherry's Voice)</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
             </select>
           </div>
 
