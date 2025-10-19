@@ -107,26 +107,27 @@ export async function POST(request: NextRequest) {
               "[Persona Creation] ✅ Custom voice generated successfully!"
             );
             console.log("[Persona Creation] Voice ID:", voiceId);
-          } else if (voiceGenData.fallback) {
+          } else {
             console.log(
-              "[Persona Creation] ⚠️ Voice generation not available (plan limitation)"
+              "[Persona Creation] ⚠️ Voice generation failed or fallback triggered."
             );
-            console.log("[Persona Creation] Using gender-based fallback voice");
+            console.log("[Persona Creation] Using gender-based fallback voice.", voiceId);
           }
         } else {
-          const errorData = await voiceGenResponse.json();
+          const errorData = await voiceGenResponse.json().catch(() => ({}));
           console.log(
-            "[Persona Creation] ⚠️ Voice generation failed:",
-            errorData.error
+            "[Persona Creation] ⚠️ Voice generation request failed:",
+            voiceGenResponse.status,
+            errorData.error || 'No error details'
           );
-          console.log("[Persona Creation] Using gender-based fallback voice");
+          console.log("[Persona Creation] Using gender-based fallback voice.", voiceId);
         }
       } catch (error: any) {
         console.error(
-          "[Persona Creation] Voice generation error:",
+          "[Persona Creation] An unexpected error occurred during voice generation:",
           error.message
         );
-        console.log("[Persona Creation] Using gender-based fallback voice");
+        console.log("[Persona Creation] Using gender-based fallback voice.", voiceId);
       }
     } else {
       console.log(

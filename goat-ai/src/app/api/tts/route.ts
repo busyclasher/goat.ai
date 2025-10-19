@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`ElevenLabs API error: ${response.status}`, errorBody);
       throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 

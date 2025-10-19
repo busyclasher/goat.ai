@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      throw new Error(`Voice design failed: ${designResponse.status}`);
+      throw new Error(`Voice design failed with status ${designResponse.status}: ${errorText}`);
     }
 
     const designData = await designResponse.json();

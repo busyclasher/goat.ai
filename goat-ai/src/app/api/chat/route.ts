@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
 import { groq } from "../../../lib/groq";
+import { buildSystemPrompt } from "../../../lib/prompt";
 
 export async function POST(req: Request) {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
@@ -63,25 +64,10 @@ export async function POST(req: Request) {
     // 3. Build messages array: system prompt + history
     // Note: The current user message is already saved in DB and included in messageHistory
     
-    // Build enhanced system prompt with style bullets and taboo
-    const styleContext = personaData.style_bullets?.length 
-      ? `\n\nCommunication Style:\n${personaData.style_bullets.map((s: string) => `- ${s}`).join('\n')}`
-      : '';
-
-    const tabooContext = personaData.taboo?.length
-      ? `\n\nTopics to Avoid:\n${personaData.taboo.map((t: string) => `- ${t}`).join('\n')}`
-      : '';
-
-    const emotionInstructions = `\n\nCRITICAL INSTRUCTIONS:
-- Keep all responses to a MAXIMUM of 3 sentences. Be concise and impactful.
-- Respond in first person as this persona - you ARE them, not narrating about them.
-- Use natural, conversational language without any emotion tags, brackets, or third-person narrative.
-- Express emotion through word choice and phrasing, not through descriptive tags.`;
-
     const messages = [
       {
         role: "system" as const,
-        content: activePersona.system_prompt + styleContext + tabooContext + emotionInstructions,
+        content: buildSystemPrompt(activePersona),
       },
       // Add conversation history (includes the current user message)
       ...(messageHistory || []).map((msg) => ({

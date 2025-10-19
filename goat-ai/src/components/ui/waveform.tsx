@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 // Base Waveform Props
@@ -29,7 +29,6 @@ export interface MicrophoneWaveformProps extends Omit<WaveformProps, "data" | "o
 export interface RecordingWaveformProps extends Omit<WaveformProps, "data"> {
   recording?: boolean;
   onRecordingComplete?: (data: number[]) => void;
-  showHandle?: boolean;
   updateRate?: number;
 }
 
@@ -264,7 +263,6 @@ export function MicrophoneWaveform({
 export function RecordingWaveform({
   recording = false,
   onRecordingComplete,
-  showHandle = true,
   updateRate = 50,
   barWidth = 4,
   barGap = 2,

@@ -100,8 +100,12 @@ export async function searchPersonImage(personName: string): Promise<string | nu
 
     console.log('[Image Search] No images found for:', personName);
     return null;
-  } catch (error: any) {
-    console.error('[Image Search] Failed to fetch image:', error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('[Image Search] Failed to fetch image:', error.message);
+    } else {
+      console.error('[Image Search] An unknown error occurred:', error);
+    }
     return null;
   }
 }

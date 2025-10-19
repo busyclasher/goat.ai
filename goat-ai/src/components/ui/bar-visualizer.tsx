@@ -245,12 +245,6 @@ export function BarVisualizer({
     100
   );
 
-  // Demo mode: generate fake data
-  const demoData = useMemo(() => {
-    if (!demo) return [];
-    return Array.from({ length: barCount }, () => Math.random());
-  }, [demo, barCount]);
-
   const [demoIndex, setDemoIndex] = useState(0);
 
   useEffect(() => {

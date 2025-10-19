@@ -17,6 +17,8 @@ import { getPersona, buildPersona, listPersonas } from "@/lib/personas";
 import { getConversation, createConversation, sendMessage, addAssistantMessage } from "@/lib/chat";
 import type { Persona, Conversation as ConversationType, Message as SupabaseMessage } from "@/lib/supabase";
 import Link from "next/link";
+import { usePersona } from "@/hooks/usePersona";
+import { useConversation } from "@/hooks/useConversation";
 
 type Message = SupabaseMessage & { type?: 'system_notification' };
 
@@ -26,11 +28,9 @@ function ChatPageContent() {
   const messageParam = searchParams.get("message");
   
   const [currentPersonaSlug, setCurrentPersonaSlug] = useState(personaParam);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona, isLoading: isPersonaLoading, error: personaError, setPersona } = usePersona(currentPersonaSlug);
+  const { conversation, conversationId, error: conversationError, addMessage } = useConversation(persona);
   const [personas, setPersonas] = useState<Persona[]>([]);
-  const [conversation, setConversation] = useState<(ConversationType & { messages: Message[] }) | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
@@ -69,116 +69,6 @@ function ChatPageContent() {
     fetchPersonas();
   }, []);
 
-  // Load persona when slug changes
-  useEffect(() => {
-    const loadPersona = async () => {
-      if (!currentPersonaSlug) return;
-      
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        let personaData = await getPersona(currentPersonaSlug);
-        if (!personaData) {
-          personaData = await buildPersona(currentPersonaSlug);
-        }
-        setPersona(personaData);
-      } catch (err) {
-        console.error("Error loading persona:", err);
-        setError("Failed to load persona");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPersona();
-  }, [currentPersonaSlug]);
-
-  // Create conversation when persona is ready
-  useEffect(() => {
-    const createNewConversation = async () => {
-      if (persona && !conversationId) { // Check for existing conversation
-        try {
-          const newConversation = await createConversation(persona.id);
-          if (newConversation) {
-            setConversationId(newConversation.id);
-            setConversation(newConversation as ConversationType & { messages: Message[] }); // Also set the conversation object
-          }
-        } catch (err) {
-          console.error("Error creating conversation:", err);
-          setError("Failed to create conversation");
-        }
-      }
-    };
-
-    createNewConversation();
-  }, [persona, conversationId]); // Add conversationId to dependencies
-
-  // Load conversation and set up real-time subscription
-  useEffect(() => {
-    if (!conversationId) return;
-
-    // Initial load
-    const loadConversation = async () => {
-      try {
-        const conversationData = await getConversation(conversationId);
-        setConversation(conversationData);
-      } catch (err) {
-        console.error("Error loading conversation:", err);
-      }
-    };
-
-    loadConversation();
-
-    // Skip real-time in demo mode
-    const demoMode = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-    if (demoMode) return;
-
-    // Set up real-time subscription for new messages
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { supabase } = require("@/lib/supabase");
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        async (payload: { new: { id: string } }) => {
-          console.log('New message received:', payload.new);
-          
-          // Fetch the complete message with persona data
-          const { data: newMessage } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              persona:personas(*)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (newMessage) {
-            setConversation((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                messages: [...prev.messages, newMessage]
-              };
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId]);
-
   const handlePersonaSwitch = async (slug: string, remainingMessage?: string) => {
     if (window.currentlyPlayingAudio) {
       window.currentlyPlayingAudio.pause();
@@ -189,7 +79,7 @@ function ChatPageContent() {
     }
 
     try {
-      setIsLoading(true);
+      setIsReplying(true);
       setError(null);
 
       // Call the persona switch API
@@ -222,13 +112,7 @@ function ChatPageContent() {
         conversation_id: conversationId,
       } as Message;
 
-      setConversation(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          messages: [...prev.messages, systemMessage]
-        };
-      });
+      addMessage(systemMessage);
 
       // If there's a remaining message, send it with the new persona
       if (remainingMessage?.trim()) {
@@ -238,7 +122,7 @@ function ChatPageContent() {
       console.error("Error switching persona:", err);
       setToast({ message: "Failed to switch persona", type: "error" });
     } finally {
-      setIsLoading(false);
+      setIsReplying(false);
     }
   };
 
@@ -348,7 +232,7 @@ function ChatPageContent() {
       // In demo mode, manually update the conversation state
       if (demoMode) {
         const updatedConversation = await getConversation(conversationId);
-        setConversation(updatedConversation);
+        // setConversation(updatedConversation); // This line is removed
       }
 
       // Generate AI response
@@ -361,23 +245,13 @@ function ChatPageContent() {
 
       // Optimistically update the conversation state
       if (newMessage) {
-        setConversation(prev => {
-          if (!prev) return null;
-          // Ensure no duplicates from real-time subscription
-          if (prev.messages.some(msg => msg.id === newMessage.id)) {
-            return prev;
-          }
-          return {
-            ...prev,
-            messages: [...prev.messages, newMessage]
-          };
-        });
+        addMessage(newMessage);
       }
 
       // In demo mode, manually update the conversation state again
       if (demoMode) {
         const updatedConversation = await getConversation(conversationId);
-        setConversation(updatedConversation);
+        // setConversation(updatedConversation); // This line is removed
       }
 
       return response;
@@ -386,7 +260,7 @@ function ChatPageContent() {
       setIsReplying(false);
       throw err;
     }
-  }, [conversationId, persona, generateAIResponse]);
+  }, [conversationId, persona, generateAIResponse, addMessage]);
   
   const handleSendMessage = useCallback(async (content: string, convId?: string, personaOverride?: Persona) => {
     if (window.currentlyPlayingAudio) {
@@ -424,7 +298,7 @@ function ChatPageContent() {
       // In demo mode, manually update the conversation state
       if (demoMode) {
         const updatedConversation = await getConversation(activeConversationId);
-        setConversation(updatedConversation);
+        // setConversation(updatedConversation); // This line is removed
       }
 
       // Generate AI response
@@ -441,30 +315,20 @@ function ChatPageContent() {
 
       // Optimistically update the conversation state
       if (newMessage) {
-        setConversation(prev => {
-          if (!prev) return null;
-          // Ensure no duplicates from real-time subscription
-          if (prev.messages.some(msg => msg.id === newMessage.id)) {
-            return prev;
-          }
-          return {
-            ...prev,
-            messages: [...prev.messages, newMessage]
-          };
-        });
+        addMessage(newMessage);
       }
 
       // In demo mode, manually update the conversation state again
       if (demoMode) {
         const updatedConversation = await getConversation(activeConversationId);
-        setConversation(updatedConversation);
+        // setConversation(updatedConversation); // This line is removed
       }
     } catch (err) {
       console.error("Error sending message:", err);
       setToast({ message: "Failed to send message", type: "error" });
       setIsReplying(false);
     }
-  }, [conversationId, persona, personas, generateAIResponse]);
+  }, [conversationId, persona, personas, generateAIResponse, addMessage]);
 
   // Auto-send initial message from URL parameter
   useEffect(() => {
@@ -478,7 +342,7 @@ function ChatPageContent() {
     autoSendMessage();
   }, [conversationId, persona, messageParam, handleSendMessage]);
 
-  if (isLoading) {
+  if (isPersonaLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="flex items-center gap-2">
@@ -489,11 +353,11 @@ function ChatPageContent() {
     );
   }
 
-  if (error) {
+  if (error || personaError || conversationError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+          <p className="text-red-500 mb-4">{error || personaError || conversationError}</p>
           <button 
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -637,27 +501,13 @@ function ChatPageContent() {
 }
 
 export default function ChatPage() {
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
   return (
-    <>
-      {isClient ? (
-        <Suspense fallback={
-          <div className="flex items-center justify-center h-screen">
-            <Loader2 className="w-6 h-6 animate-spin" />
-          </div>
-        }>
-          <ChatPageContent />
-        </Suspense>
-      ) : (
-        <div className="flex items-center justify-center h-screen">
-          <Loader2 className="w-6 h-6 animate-spin" />
-        </div>
-      )}
-    </>
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    }>
+      <ChatPageContent />
+    </Suspense>
   );
 }

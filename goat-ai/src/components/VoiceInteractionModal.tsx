@@ -11,7 +11,6 @@ interface VoiceInteractionModalProps {
   onClose: () => void;
   personaAvatar?: string;
   personaName: string;
-  personaVoiceId: string;
   onMessage: (text: string) => Promise<{ text: string; audioUrl?: string }>;
 }
 
@@ -20,7 +19,6 @@ export function VoiceInteractionModal({
   onClose,
   personaAvatar,
   personaName,
-  personaVoiceId,
   onMessage,
 }: VoiceInteractionModalProps) {
   const [agentState, setAgentState] = useState<VoiceSessionState>("idle");
@@ -54,7 +52,7 @@ export function VoiceInteractionModal({
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   const handleClose = useCallback(() => {
     if (voiceSessionRef.current) {
@@ -186,7 +184,7 @@ export function VoiceInteractionModal({
         <div className="mb-6 text-center min-h-[60px]">
           <p className="text-white text-lg mb-2">{getStateText()}</p>
           {transcript && (
-            <p className="text-white/70 text-sm italic">"{transcript}"</p>
+            <p className="text-white/70 text-sm italic">&quot;{transcript}&quot;</p>
           )}
           {error && (
             <p className="text-red-400 text-sm">{error}</p>
