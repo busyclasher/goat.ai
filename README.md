@@ -71,11 +71,13 @@ npm run dev
 # Visit http://localhost:3000
 ```
 
----
-
 ## 🎪 Live Demo
 
 **Try it now:** [goat.ai](https://goat.ai) *(if deployed)*
+
+**📺 Watch the Demo:** [YouTube Demo Video](https://youtu.be/OMuJ75y7fO0) - See GOAT.ai in action with voice interactions and persona switching!
+
+> **Note:** We recently moved our demo video to YouTube to avoid hosting large MP4 files in this public repository, which helps keep the repository lightweight and secure.
 
 **Sample Personas:**
 - 🧠 **@warrenbuffett** - Investment wisdom & long-term thinking
